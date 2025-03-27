@@ -8,6 +8,11 @@ on:
     branches:
       - '*'  # Matches PRs targeting any branch
 
+# Add permissions at the workflow level
+permissions:
+  contents: write  # For pushing tags and commits
+  issues: write    # For @semantic-release/github to create issues on failure (optional)
+
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -51,4 +56,4 @@ jobs:
       - name: Run semantic-release
         run: npx semantic-release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # For GitHub releases and tagging
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
