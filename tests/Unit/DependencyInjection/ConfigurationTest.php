@@ -10,12 +10,13 @@ use Symfony\Component\Config\Definition\Processor;
 class ConfigurationTest extends TestCase
 {
     private Configuration $configuration;
+
     private Processor $processor;
 
     protected function setUp(): void
     {
         $this->configuration = new Configuration();
-        $this->processor = new Processor();
+        $this->processor     = new Processor();
     }
 
     public function testDefaultConfiguration(): void
@@ -23,10 +24,10 @@ class ConfigurationTest extends TestCase
         $config = $this->processor->processConfiguration($this->configuration, [[]]);
 
         $this->assertEquals([
-            'enabled' => true,
-            'purge_threshold' => 100,
-            'log_output' => true,
-            'log_errors' => true,
+            'enabled'           => true,
+            'purge_threshold'   => 100,
+            'log_output'        => true,
+            'log_errors'        => true,
             'excluded_commands' => [],
             'included_commands' => [],
         ], $config);
@@ -35,10 +36,10 @@ class ConfigurationTest extends TestCase
     public function testCustomValidConfiguration(): void
     {
         $inputConfig = [
-            'enabled' => false,
-            'purge_threshold' => 30,
-            'log_output' => false,
-            'log_errors' => false,
+            'enabled'           => false,
+            'purge_threshold'   => 30,
+            'log_output'        => false,
+            'log_errors'        => false,
             'excluded_commands' => ['app:test'],
             'included_commands' => [],
         ];
@@ -46,10 +47,10 @@ class ConfigurationTest extends TestCase
         $config = $this->processor->processConfiguration($this->configuration, [$inputConfig]);
 
         $this->assertEquals([
-            'enabled' => false,
-            'purge_threshold' => 30,
-            'log_output' => false,
-            'log_errors' => false,
+            'enabled'           => false,
+            'purge_threshold'   => 30,
+            'log_output'        => false,
+            'log_errors'        => false,
             'excluded_commands' => ['app:test'],
             'included_commands' => [],
         ], $config);
@@ -65,10 +66,10 @@ class ConfigurationTest extends TestCase
         $config = $this->processor->processConfiguration($this->configuration, [$inputConfig]);
 
         $this->assertEquals([
-            'enabled' => true,
-            'purge_threshold' => 100,
-            'log_output' => true,
-            'log_errors' => true,
+            'enabled'           => true,
+            'purge_threshold'   => 100,
+            'log_output'        => true,
+            'log_errors'        => true,
             'excluded_commands' => [],
             'included_commands' => ['app:my-command'],
         ], $config);

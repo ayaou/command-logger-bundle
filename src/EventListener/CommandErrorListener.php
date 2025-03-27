@@ -17,7 +17,7 @@ class CommandErrorListener extends AbstractCommandListener
     public function __construct(
         EntityManagerInterface $entityManager,
         bool $enabled,
-        bool $logErrors
+        bool $logErrors,
     ) {
         $this->entityManager = $entityManager;
         $this->enabled       = $enabled;
@@ -49,12 +49,12 @@ class CommandErrorListener extends AbstractCommandListener
 
     private function getErrorDetails(\Throwable $error): array
     {
-        $errorDetails = [$error->getMessage() . "\n" . $error->getTraceAsString()];
+        $errorDetails = [$error->getMessage()."\n".$error->getTraceAsString()];
 
         $limit    = 10;
         $previous = $error->getPrevious();
         while ($previous && $limit-- > 0) {
-            $errorDetails[] = $previous->getMessage() . "\n" . $previous->getTraceAsString();
+            $errorDetails[] = $previous->getMessage()."\n".$previous->getTraceAsString();
             $previous       = $previous->getPrevious();
         }
 

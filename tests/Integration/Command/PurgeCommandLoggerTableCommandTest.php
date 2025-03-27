@@ -4,29 +4,27 @@ namespace Ayaou\CommandLoggerBundle\Tests\Integration\Command;
 
 use Ayaou\CommandLoggerBundle\Command\PurgeCommandLoggerTableCommand;
 use Ayaou\CommandLoggerBundle\Repository\CommandLogRepository;
-use PHPUnit\Framework\MockObject\Exception;
+use Ayaou\CommandLoggerBundle\Tests\Integration\AppKernelTestCase;
 use PHPUnit\Framework\MockObject\MockObject;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
-use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 
-class PurgeCommandLoggerTableCommandTest extends KernelTestCase
+class PurgeCommandLoggerTableCommandTest extends AppKernelTestCase
 {
     private PurgeCommandLoggerTableCommand $command;
+
     private MockObject|CommandLogRepository $repository;
+
     private CommandTester $commandTester;
 
-    /**
-     * @throws Exception
-     */
     protected function setUp(): void
     {
-        $kernel = self::bootKernel();
-        $application = new Application($kernel);
+        self::bootKernel();
+        $application = new Application(self::$kernel);
 
         $this->repository = $this->createMock(CommandLogRepository::class);
-        $this->command = new PurgeCommandLoggerTableCommand(30, $this->repository);
+        $this->command    = new PurgeCommandLoggerTableCommand(30, $this->repository);
         $application->add($this->command);
 
         $this->commandTester = new CommandTester($application->find('command-logger:purge'));
@@ -37,7 +35,8 @@ class PurgeCommandLoggerTableCommandTest extends KernelTestCase
         $this->repository->method('purgeLogsOlderThan')
             ->with($this->callback(function (\DateTimeImmutable $date) {
                 $diff = (new \DateTimeImmutable())->diff($date);
-                return $diff->days === 30 && $diff->invert === 1;
+
+                return 30 === $diff->days && 1 === $diff->invert;
             }))
             ->willReturn(5);
 
@@ -53,7 +52,8 @@ class PurgeCommandLoggerTableCommandTest extends KernelTestCase
         $this->repository->method('purgeLogsOlderThan')
             ->with($this->callback(function (\DateTimeImmutable $date) {
                 $diff = (new \DateTimeImmutable())->diff($date);
-                return $diff->days === 10 && $diff->invert === 1;
+
+                return 10 === $diff->days && 1 === $diff->invert;
             }))
             ->willReturn(3);
 
