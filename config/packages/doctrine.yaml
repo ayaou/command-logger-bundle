@@ -1,0 +1,9 @@
+doctrine:
+  orm:
+    mappings:
+      CommandLoggerBundle:
+        is_bundle: true
+        type: attribute
+        dir: 'Entity'
+        prefix: 'Ayaou\CommandLoggerBundle\Entity'
+        alias: CommandLogger

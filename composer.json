@@ -1,0 +1,35 @@
+{
+  "name": "ayaou/command-logger-bundle",
+  "type": "symfony-bundle",
+  "description": "This bundle logs all commands executed with console, along with their execution time and output.",
+  "keywords": [
+    "symfony",
+    "command",
+    "logger",
+    "log"
+  ],
+  "homepage": "https://github.com/ayaou/command-logger-bundle",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Mohamed AYAOU",
+      "email": "ayaou.mohammed@gmail.com"
+    }
+  ],
+  "require": {
+    "php": ">=8.0",
+    "symfony/console": "^6.4",
+    "symfony/event-dispatcher": "^6.4",
+    "symfony/dependency-injection": "^6.4",
+    "doctrine/doctrine-bundle": "*",
+    "doctrine/orm": "*"
+  },
+  "require-dev": {},
+  "minimum-stability": "stable",
+  "autoload": {
+    "psr-4": {
+      "Ayaou\\CommandLoggerBundle\\": "src/",
+      "Ayaou\\CommandLoggerBundle\\Tests\\": "tests/"
+    }
+  }
+}

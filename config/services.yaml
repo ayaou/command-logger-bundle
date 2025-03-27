@@ -1,0 +1,38 @@
+services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+    public: false
+
+  Ayaou\CommandLoggerBundle\:
+    resource: '../src/*'
+    exclude: '../src/{Entity}'
+
+  Ayaou\CommandLoggerBundle\EventListener\CommandStartListener:
+    class: Ayaou\CommandLoggerBundle\EventListener\CommandStartListener
+    arguments:
+      $enabled: '%command_logger.enabled%'
+      $excludedCommands: '%command_logger.excluded_commands%'
+      $includedCommands: '%command_logger.included_commands%'
+    tags:
+      - { name: kernel.event_listener, event: console.command, method: onConsoleCommand }
+
+  Ayaou\CommandLoggerBundle\EventListener\CommandTerminateListener:
+    class: Ayaou\CommandLoggerBundle\EventListener\CommandTerminateListener
+    arguments:
+      $enabled: '%command_logger.enabled%'
+      $logOutput: '%command_logger.log_output%'
+    tags:
+      - { name: kernel.event_listener, event: console.terminate, method: onConsoleTerminate }
+
+  Ayaou\CommandLoggerBundle\EventListener\CommandErrorListener:
+    class: Ayaou\CommandLoggerBundle\EventListener\CommandErrorListener
+    arguments:
+      $enabled: '%command_logger.enabled%'
+      $logErrors: '%command_logger.log_errors%'
+    tags:
+      - { name: kernel.event_listener, event: console.error, method: onConsoleError }
+
+  Ayaou\CommandLoggerBundle\Command\PurgeCommandLoggerTableCommand:
+    arguments:
+      $defaultPurgeThreshold: '%command_logger.purge_threshold%'
