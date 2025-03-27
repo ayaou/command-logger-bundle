@@ -64,7 +64,7 @@ jobs:
         run: |
           mkdir release-files
           cp -r src config tests docs release-files/
-          cp composer.json CHANGELOG.md LICENSE README.md release-files/
+          cp CHANGELOG.md composer.json LICENSE README.md release-files/
           cd release-files
           zip -r ../release.zip .
         shell: bash
