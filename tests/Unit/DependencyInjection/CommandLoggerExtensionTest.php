@@ -4,12 +4,12 @@ namespace Ayaou\CommandLoggerBundle\Tests\Unit\DependencyInjection;
 
 use Ayaou\CommandLoggerBundle\DependencyInjection\CommandLoggerExtension;
 use PHPUnit\Framework\TestCase;
-use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 class CommandLoggerExtensionTest extends TestCase
 {
     private CommandLoggerExtension $extension;
+
     private ContainerBuilder $container;
 
     protected function setUp(): void
@@ -38,10 +38,10 @@ class CommandLoggerExtensionTest extends TestCase
     public function testLoadWithCustomConfig(): void
     {
         $config = [
-            'enabled' => false,
-            'purge_threshold' => 50,
-            'log_output' => false,
-            'log_errors' => false,
+            'enabled'           => false,
+            'purge_threshold'   => 50,
+            'log_output'        => false,
+            'log_errors'        => false,
             'excluded_commands' => ['app:test'],
             'included_commands' => [],
         ];

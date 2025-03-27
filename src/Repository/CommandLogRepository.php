@@ -8,6 +8,7 @@ use Doctrine\Persistence\ManagerRegistry;
 
 /**
  * @extends ServiceEntityRepository<CommandLog>
+ *
  * @method CommandLog|null find($id, $lockMode = null, $lockVersion = null)
  * @method CommandLog|null findOneBy(array $criteria, array $orderBy = null)
  * @method CommandLog[]    findAll()
@@ -23,7 +24,6 @@ class CommandLogRepository extends ServiceEntityRepository
     /**
      * Purge logs older than the given date.
      *
-     * @param \DateTimeInterface $cutoffDate
      * @return int Number of deleted rows
      */
     public function purgeLogsOlderThan(\DateTimeInterface $cutoffDate): int

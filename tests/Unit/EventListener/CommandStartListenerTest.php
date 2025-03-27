@@ -18,10 +18,15 @@ use Symfony\Component\Uid\Uuid;
 class CommandStartListenerTest extends TestCase
 {
     private CommandStartListener $listener;
+
     private MockObject|EntityManagerInterface $entityManager;
+
     private ConsoleCommandEvent $event;
+
     private MockObject|Command $command;
+
     private MockObject|InputInterface $input;
+
     private MockObject|OutputInterface $output;
 
     /**
@@ -30,16 +35,16 @@ class CommandStartListenerTest extends TestCase
     protected function setUp(): void
     {
         $this->entityManager = $this->createMock(EntityManagerInterface::class);
-        $this->command = $this->createMock(Command::class);
-        $this->input = $this->createMock(InputInterface::class);
-        $this->output = $this->createMock(OutputInterface::class);
-        $this->event = new ConsoleCommandEvent($this->command, $this->input, $this->output);
+        $this->command       = $this->createMock(Command::class);
+        $this->input         = $this->createMock(InputInterface::class);
+        $this->output        = $this->createMock(OutputInterface::class);
+        $this->event         = new ConsoleCommandEvent($this->command, $this->input, $this->output);
 
         $this->listener = new CommandStartListener(
             $this->entityManager,
             true, // enabled by default
             ['cache:clear'], // excluded_commands
-            [] // included_commands
+            [], // included_commands
         );
     }
 
@@ -85,11 +90,11 @@ class CommandStartListenerTest extends TestCase
 
         $this->entityManager->expects($this->once())->method('persist')->with(
             $this->callback(function (CommandLog $log) {
-                return $log->getCommandName() === 'app:my-command' &&
-                    $log->getArguments() === ['arg1' => 'value1', 'opt1' => 'value2'] &&
-                    $log->getStartTime() instanceof \DateTimeImmutable &&
-                    !empty($log->getExecutionToken());
-            })
+                return 'app:my-command' === $log->getCommandName()
+                    && $log->getArguments() === ['arg1' => 'value1', 'opt1' => 'value2']
+                    && $log->getStartTime() instanceof \DateTimeImmutable
+                    && !empty($log->getExecutionToken());
+            }),
         );
         $this->entityManager->expects($this->once())->method('flush');
         $this->input->expects($this->once())->method('setOption')
@@ -97,7 +102,7 @@ class CommandStartListenerTest extends TestCase
                 AbstractCommandListener::TOKEN_OPTION_NAME,
                 $this->callback(function ($token) {
                     return Uuid::isValid($token);
-                })
+                }),
             );
 
         $listener->onConsoleCommand($this->event);
@@ -111,11 +116,11 @@ class CommandStartListenerTest extends TestCase
 
         $this->entityManager->expects($this->once())->method('persist')->with(
             $this->callback(function (CommandLog $log) {
-                return $log->getCommandName() === 'app:my-command' &&
-                    $log->getArguments() === ['arg1' => 'value1', 'opt1' => 'value2'] &&
-                    $log->getStartTime() instanceof \DateTimeImmutable &&
-                    !empty($log->getExecutionToken());
-            })
+                return 'app:my-command' === $log->getCommandName()
+                    && $log->getArguments() === ['arg1' => 'value1', 'opt1' => 'value2']
+                    && $log->getStartTime() instanceof \DateTimeImmutable
+                    && !empty($log->getExecutionToken());
+            }),
         );
         $this->entityManager->expects($this->once())->method('flush');
         $this->input->expects($this->once())->method('setOption')
@@ -123,7 +128,7 @@ class CommandStartListenerTest extends TestCase
                 AbstractCommandListener::TOKEN_OPTION_NAME,
                 $this->callback(function ($token) {
                     return Uuid::isValid($token);
-                })
+                }),
             );
 
         $this->listener->onConsoleCommand($this->event);
@@ -137,12 +142,12 @@ class CommandStartListenerTest extends TestCase
 
         $this->entityManager->expects($this->once())->method('persist')->with(
             $this->callback(function (CommandLog $log) {
-                return $log->getCommandName() === 'app:my-command' &&
-                    $log->getId() === null &&
-                    $log->getArguments() === [] &&
-                    $log->getStartTime() instanceof \DateTimeImmutable &&
-                    !empty($log->getExecutionToken());
-            })
+                return 'app:my-command' === $log->getCommandName()
+                    && null === $log->getId()
+                    && [] === $log->getArguments()
+                    && $log->getStartTime() instanceof \DateTimeImmutable
+                    && !empty($log->getExecutionToken());
+            }),
         );
         $this->entityManager->expects($this->once())->method('flush');
         $this->input->expects($this->once())->method('setOption')
@@ -150,7 +155,7 @@ class CommandStartListenerTest extends TestCase
                 AbstractCommandListener::TOKEN_OPTION_NAME,
                 $this->callback(function ($token) {
                     return Uuid::isValid($token);
-                })
+                }),
             );
 
         $this->listener->onConsoleCommand($this->event);

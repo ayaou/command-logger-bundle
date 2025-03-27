@@ -12,7 +12,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(
     name: 'command-logger:purge',
-    description: 'Purge the command log table'
+    description: 'Purge the command log table',
 )]
 class PurgeCommandLoggerTableCommand extends Command
 {
@@ -23,7 +23,7 @@ class PurgeCommandLoggerTableCommand extends Command
     public function __construct(int $defaultPurgeThreshold, CommandLogRepository $commandLogRepository)
     {
         $this->defaultPurgeThreshold = $defaultPurgeThreshold;
-        $this->commandLogRepository = $commandLogRepository;
+        $this->commandLogRepository  = $commandLogRepository;
         parent::__construct();
     }
 
@@ -35,7 +35,7 @@ class PurgeCommandLoggerTableCommand extends Command
                 't',
                 InputOption::VALUE_REQUIRED,
                 'Number of days to keep logs (must be a positive integer)',
-                $this->defaultPurgeThreshold
+                $this->defaultPurgeThreshold,
             );
     }
 
@@ -45,13 +45,14 @@ class PurgeCommandLoggerTableCommand extends Command
 
         // Get and validate threshold
         $threshold = $input->getOption('threshold');
-        if (!is_numeric($threshold) || (int)$threshold <= 0) {
+        if (!is_numeric($threshold) || (int) $threshold <= 0) {
             $io->error('The threshold must be a positive integer.');
+
             return Command::INVALID;
         }
 
-        $thresholdDays = (int)$threshold;
-        $cutoffDate = new \DateTimeImmutable("-$thresholdDays days");
+        $thresholdDays = (int) $threshold;
+        $cutoffDate    = new \DateTimeImmutable("-$thresholdDays days");
 
         // Purge logs older than the cutoff date
         $deletedCount = $this->commandLogRepository->purgeLogsOlderThan($cutoffDate);

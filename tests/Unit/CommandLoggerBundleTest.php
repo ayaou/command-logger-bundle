@@ -3,7 +3,7 @@
 namespace Ayaou\CommandLoggerBundle\Tests\Unit;
 
 use Ayaou\CommandLoggerBundle\CommandLoggerBundle;
-use Monolog\Test\TestCase;
+use PHPUnit\Framework\TestCase;
 
 class CommandLoggerBundleTest extends TestCase
 {
