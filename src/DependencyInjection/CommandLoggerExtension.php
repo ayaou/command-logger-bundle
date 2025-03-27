@@ -11,7 +11,7 @@ class CommandLoggerExtension extends Extension
 {
     public function load(array $configs, ContainerBuilder $container): void
     {
-        $configuration = new Configuration();
+        $configuration   = new Configuration();
         $processedConfig = $this->processConfiguration($configuration, $configs);
 
         $container->setParameter('command_logger.enabled', $processedConfig['enabled']);
@@ -21,7 +21,7 @@ class CommandLoggerExtension extends Extension
         $container->setParameter('command_logger.excluded_commands', $processedConfig['excluded_commands']);
         $container->setParameter('command_logger.included_commands', $processedConfig['included_commands']);
 
-        $loader = new YamlFileLoader($container, new FileLocator(__DIR__ . '/../../config'));
+        $loader = new YamlFileLoader($container, new FileLocator(__DIR__.'/../../config'));
         $loader->load('services.yaml');
     }
 

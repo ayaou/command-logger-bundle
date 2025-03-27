@@ -21,7 +21,7 @@ class CommandStartListener extends AbstractCommandListener
         EntityManagerInterface $entityManager,
         bool $enabled,
         array $excludedCommands,
-        array $includedCommands
+        array $includedCommands,
     ) {
         $this->entityManager    = $entityManager;
         $this->enabled          = $enabled;
@@ -41,6 +41,11 @@ class CommandStartListener extends AbstractCommandListener
         }
 
         $commandName = $command->getName();
+
+        if (empty($commandName)) {
+            return;
+        }
+
         if (!empty($this->includedCommands)) {
             if (!in_array($commandName, $this->includedCommands, true)) {
                 return;
