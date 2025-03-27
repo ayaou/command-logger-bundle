@@ -17,13 +17,19 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class CommandErrorListenerTest extends TestCase
 {
-    private CommandErrorListener              $listener;
+    private CommandErrorListener $listener;
+
     private MockObject|EntityManagerInterface $entityManager;
-    private ConsoleErrorEvent                 $event;
-    private MockObject|Command                $command;
-    private MockObject|InputInterface         $input;
-    private MockObject|OutputInterface        $output;
-    private MockObject|EntityRepository       $repository;
+
+    private ConsoleErrorEvent $event;
+
+    private MockObject|Command $command;
+
+    private MockObject|InputInterface $input;
+
+    private MockObject|OutputInterface $output;
+
+    private MockObject|EntityRepository $repository;
 
     /**
      * @throws Exception
@@ -46,7 +52,7 @@ class CommandErrorListenerTest extends TestCase
         $this->listener = new CommandErrorListener(
             $this->entityManager,
             true,
-            true
+            true,
         );
     }
 
@@ -105,11 +111,12 @@ class CommandErrorListenerTest extends TestCase
             ->with(
                 $this->callback(function (CommandLog $persistedLog) use ($log) {
                     $errorMessage = $persistedLog->getErrorMessage();
-                    return $persistedLog === $log &&
-                        !str_contains($errorMessage, 'Outer error') &&
-                        str_contains($errorMessage, 'Inner error') &&
-                        !str_contains($errorMessage, "\n\n\n");
-                })
+
+                    return $persistedLog === $log
+                        && !str_contains($errorMessage, 'Outer error')
+                        && str_contains($errorMessage, 'Inner error')
+                        && !str_contains($errorMessage, "\n\n\n");
+                }),
             );
         $this->entityManager->expects($this->once())->method('flush');
 
@@ -133,11 +140,12 @@ class CommandErrorListenerTest extends TestCase
             ->with(
                 $this->callback(function (CommandLog $persistedLog) use ($log) {
                     $errorMessage = $persistedLog->getErrorMessage();
-                    return $persistedLog === $log &&
-                        str_contains($errorMessage, 'Outer error') &&
-                        str_contains($errorMessage, 'Inner error') &&
-                        str_contains($errorMessage, "\n\n\n");
-                })
+
+                    return $persistedLog === $log
+                        && str_contains($errorMessage, 'Outer error')
+                        && str_contains($errorMessage, 'Inner error')
+                        && str_contains($errorMessage, "\n\n\n");
+                }),
             );
         $this->entityManager->expects($this->once())->method('flush');
 

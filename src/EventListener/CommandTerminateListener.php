@@ -17,7 +17,7 @@ class CommandTerminateListener extends AbstractCommandListener
     public function __construct(
         EntityManagerInterface $entityManager,
         bool $enabled,
-        bool $logOutput
+        bool $logOutput,
     ) {
         $this->entityManager = $entityManager;
         $this->enabled       = $enabled;

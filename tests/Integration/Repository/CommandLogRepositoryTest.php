@@ -4,26 +4,20 @@ namespace Ayaou\CommandLoggerBundle\Tests\Integration\Repository;
 
 use Ayaou\CommandLoggerBundle\Entity\CommandLog;
 use Ayaou\CommandLoggerBundle\Repository\CommandLogRepository;
-use Doctrine\ORM\Tools\SchemaTool;
-use Doctrine\ORM\Tools\ToolsException;
-use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Ayaou\CommandLoggerBundle\Tests\Integration\AppKernelTestCase;
 
-class CommandLogRepositoryTest extends KernelTestCase
+class CommandLogRepositoryTest extends AppKernelTestCase
 {
     private CommandLogRepository $repository;
 
-    /**
-     * @throws ToolsException
-     */
     protected function setUp(): void
     {
         self::bootKernel();
         $this->repository = self::getContainer()->get(CommandLogRepository::class);
 
-        // Set up in-memory SQLite DB and create schema
         $entityManager = self::getContainer()->get('doctrine.orm.entity_manager');
-        $schemaTool = new SchemaTool($entityManager);
-        $metadata = $entityManager->getClassMetadata(CommandLog::class);
+        $schemaTool    = new \Doctrine\ORM\Tools\SchemaTool($entityManager);
+        $metadata      = $entityManager->getClassMetadata(CommandLog::class);
         $schemaTool->createSchema([$metadata]);
     }
 
@@ -46,7 +40,7 @@ class CommandLogRepositoryTest extends KernelTestCase
         $entityManager->flush();
 
         // Purge logs older than 30 days
-        $cutoffDate = new \DateTimeImmutable('-30 days');
+        $cutoffDate   = new \DateTimeImmutable('-30 days');
         $deletedCount = $this->repository->purgeLogsOlderThan($cutoffDate);
 
         $this->assertEquals(1, $deletedCount);
@@ -71,7 +65,7 @@ class CommandLogRepositoryTest extends KernelTestCase
         $entityManager->flush();
 
         // Purge logs older than 30 days
-        $cutoffDate = new \DateTimeImmutable('-30 days');
+        $cutoffDate   = new \DateTimeImmutable('-30 days');
         $deletedCount = $this->repository->purgeLogsOlderThan($cutoffDate);
 
         $this->assertEquals(0, $deletedCount);

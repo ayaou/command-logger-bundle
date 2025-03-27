@@ -1,0 +1,20 @@
+# ide
+.idea
+
+# Test projects
+projects
+
+# Symfony excluded files and folders
+vendor
+var
+composer.lock
+
+# Docker
+.docker
+.data
+
+# Quality
+.php-cs-fixer.cache
+
+# Quality
+.php-cs-fixer.cache

@@ -1,0 +1,54 @@
+name: Tests and Release
+
+on:
+  push:
+    branches:
+      - '*'  # Matches all branches
+  pull_request:
+    branches:
+      - '*'  # Matches PRs targeting any branch
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: sqlite3, pdo_sqlite
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --dev
+
+      - name: Run integration tests
+        run: vendor/bin/phpunit tests/Integration
+
+      - name: Run unit tests
+        run: vendor/bin/phpunit tests/Unit
+
+  release:
+    runs-on: ubuntu-latest
+    needs: tests  # Only runs if tests pass
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'  # Only on main
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for commit analysis
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install semantic-release
+        run: npm install -g semantic-release @semantic-release/git @semantic-release/changelog @semantic-release/github
+
+      - name: Run semantic-release
+        run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # For GitHub releases and tagging

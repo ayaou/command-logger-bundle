@@ -19,11 +19,17 @@ use Symfony\Component\Console\Output\OutputInterface;
 class CommandTerminateListenerTest extends TestCase
 {
     private CommandTerminateListener $listener;
+
     private MockObject|EntityManagerInterface $entityManager;
+
     private ConsoleTerminateEvent $event;
+
     private MockObject|Command $command;
+
     private MockObject|InputInterface $input;
+
     private MockObject|OutputInterface $output;
+
     private MockObject|EntityRepository $repository;
 
     /**
@@ -32,10 +38,10 @@ class CommandTerminateListenerTest extends TestCase
     protected function setUp(): void
     {
         $this->entityManager = $this->createMock(EntityManagerInterface::class);
-        $this->command = $this->createMock(Command::class);
-        $this->input = $this->createMock(InputInterface::class);
-        $this->output = $this->createMock(BufferedOutput::class);
-        $this->repository = $this->createMock(EntityRepository::class);
+        $this->command       = $this->createMock(Command::class);
+        $this->input         = $this->createMock(InputInterface::class);
+        $this->output        = $this->createMock(BufferedOutput::class);
+        $this->repository    = $this->createMock(EntityRepository::class);
 
         $this->event = new ConsoleTerminateEvent($this->command, $this->input, $this->output, 0);
 
@@ -46,7 +52,7 @@ class CommandTerminateListenerTest extends TestCase
         $this->listener = new CommandTerminateListener(
             $this->entityManager,
             true, // enabled by default
-            true  // logOutput by default
+            true,  // logOutput by default
         );
     }
 
@@ -83,7 +89,7 @@ class CommandTerminateListenerTest extends TestCase
 
     public function testLogsTerminationWithoutOutput(): void
     {
-        $log = new CommandLog();
+        $log      = new CommandLog();
         $listener = new CommandTerminateListener($this->entityManager, true, false); // logOutput off
 
         $this->input->method('getOption')
@@ -95,10 +101,10 @@ class CommandTerminateListenerTest extends TestCase
 
         $this->entityManager->expects($this->once())->method('persist')
             ->with($this->callback(function (CommandLog $persistedLog) use ($log) {
-                return $persistedLog === $log &&
-                    $persistedLog->getEndTime() instanceof \DateTimeImmutable &&
-                    $persistedLog->getExitCode() === 0 &&
-                    $persistedLog->getOutput() === null;
+                return $persistedLog === $log
+                    && $persistedLog->getEndTime() instanceof \DateTimeImmutable
+                    && 0 === $persistedLog->getExitCode()
+                    && null === $persistedLog->getOutput();
             }));
         $this->entityManager->expects($this->once())->method('flush');
 
@@ -121,10 +127,10 @@ class CommandTerminateListenerTest extends TestCase
 
         $this->entityManager->expects($this->once())->method('persist')
             ->with($this->callback(function (CommandLog $persistedLog) use ($log) {
-                return $persistedLog === $log &&
-                    $persistedLog->getEndTime() instanceof \DateTimeImmutable &&
-                    $persistedLog->getExitCode() === 0 &&
-                    $persistedLog->getOutput() === 'command output';
+                return $persistedLog === $log
+                    && $persistedLog->getEndTime() instanceof \DateTimeImmutable
+                    && 0 === $persistedLog->getExitCode()
+                    && 'command output' === $persistedLog->getOutput();
             }));
         $this->entityManager->expects($this->once())->method('flush');
 
@@ -144,11 +150,11 @@ class CommandTerminateListenerTest extends TestCase
         $this->entityManager
             ->expects($this->once())
             ->method('persist')
-            ->with($this->callback(function (CommandLog $persistedLog) use ($log) {
+            ->with($this->callback(function (CommandLog $persistedLog) {
                 return
-                    $persistedLog->getEndTime() instanceof \DateTimeImmutable &&
-                    $persistedLog->getExitCode() === 0 &&
-                    $persistedLog->getOutput() === '';
+                    $persistedLog->getEndTime() instanceof \DateTimeImmutable
+                    && 0 === $persistedLog->getExitCode()
+                    && '' === $persistedLog->getOutput();
             }));
         $this->entityManager->expects($this->once())->method('flush');
 
