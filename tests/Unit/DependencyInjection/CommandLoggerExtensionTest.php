@@ -29,60 +29,19 @@ class CommandLoggerExtensionTest extends TestCase
 
         $this->assertTrue($this->container->getParameter('command_logger.enabled'));
         $this->assertEquals(100, $this->container->getParameter('command_logger.purge_threshold'));
-        $this->assertTrue($this->container->getParameter('command_logger.log_output'));
-        $this->assertTrue($this->container->getParameter('command_logger.log_errors'));
-        $this->assertEquals([], $this->container->getParameter('command_logger.excluded_commands'));
-        $this->assertEquals([], $this->container->getParameter('command_logger.included_commands'));
     }
 
     public function testLoadWithCustomConfig(): void
     {
         $config = [
-            'enabled'           => false,
-            'purge_threshold'   => 50,
-            'log_output'        => false,
-            'log_errors'        => false,
-            'excluded_commands' => ['app:test'],
-            'included_commands' => [],
+            'enabled'         => false,
+            'purge_threshold' => 50,
         ];
 
         $this->extension->load([$config], $this->container);
 
         $this->assertFalse($this->container->getParameter('command_logger.enabled'));
         $this->assertEquals(50, $this->container->getParameter('command_logger.purge_threshold'));
-        $this->assertFalse($this->container->getParameter('command_logger.log_output'));
-        $this->assertFalse($this->container->getParameter('command_logger.log_errors'));
-        $this->assertEquals(['app:test'], $this->container->getParameter('command_logger.excluded_commands'));
-        $this->assertEquals([], $this->container->getParameter('command_logger.included_commands'));
-    }
-
-    public function testLoadWithIncludedCommands(): void
-    {
-        $config = [
-            'included_commands' => ['app:my-command'],
-        ];
-
-        $this->extension->load([$config], $this->container);
-
-        $this->assertTrue($this->container->getParameter('command_logger.enabled'));
-        $this->assertEquals(100, $this->container->getParameter('command_logger.purge_threshold'));
-        $this->assertTrue($this->container->getParameter('command_logger.log_output'));
-        $this->assertTrue($this->container->getParameter('command_logger.log_errors'));
-        $this->assertEquals([], $this->container->getParameter('command_logger.excluded_commands'));
-        $this->assertEquals(['app:my-command'], $this->container->getParameter('command_logger.included_commands'));
-    }
-
-    public function testLoadWithBothIncludedAndExcludedCommandsFails(): void
-    {
-        $this->expectException(\Symfony\Component\Config\Definition\Exception\InvalidConfigurationException::class);
-        $this->expectExceptionMessage('You cannot configure both "included_commands" and "excluded_commands" at the same time.');
-
-        $config = [
-            'excluded_commands' => ['cache:clear'],
-            'included_commands' => ['app:my-command'],
-        ];
-
-        $this->extension->load([$config], $this->container);
     }
 
     public function testLoadWithNegativePurgeThresholdFails(): void

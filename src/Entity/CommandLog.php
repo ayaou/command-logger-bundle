@@ -38,9 +38,6 @@ class CommandLog
     #[ORM\Column(type: 'string', length: 36, unique: true)]
     private ?string $executionToken = null;
 
-    #[ORM\Column(type: 'text', nullable: true)]
-    private ?string $output = null;
-
     public function getId(): ?int
     {
         return $this->id;
@@ -126,18 +123,6 @@ class CommandLog
     public function setExecutionToken(string $executionToken): self
     {
         $this->executionToken = $executionToken;
-
-        return $this;
-    }
-
-    public function getOutput(): ?string
-    {
-        return $this->output;
-    }
-
-    public function setOutput(?string $output): self
-    {
-        $this->output = $output;
 
         return $this;
     }
