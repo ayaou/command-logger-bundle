@@ -3,6 +3,7 @@
 namespace Ayaou\CommandLoggerBundle\EventListener;
 
 use Ayaou\CommandLoggerBundle\Entity\CommandLog;
+use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Event\ConsoleErrorEvent;
 
@@ -10,27 +11,29 @@ class CommandErrorListener extends AbstractCommandListener
 {
     private EntityManagerInterface $entityManager;
 
-    private bool $enabled;
+    private CommandExecutionTracker $commandExecutionTracker;
 
-    private bool $logErrors;
+    private bool $enabled;
 
     public function __construct(
         EntityManagerInterface $entityManager,
+        CommandExecutionTracker $commandExecutionTracker,
         bool $enabled,
-        bool $logErrors,
     ) {
-        $this->entityManager = $entityManager;
-        $this->enabled       = $enabled;
-        $this->logErrors     = $logErrors;
+        $this->entityManager           = $entityManager;
+        $this->commandExecutionTracker = $commandExecutionTracker;
+        $this->enabled                 = $enabled;
     }
 
     public function onConsoleError(ConsoleErrorEvent $event): void
     {
-        if (!$this->enabled || !$this->logErrors) {
+        $command = $event->getCommand();
+
+        if (!$this->enabled || !$command || !$this->isSupportedCommand($command)) {
             return;
         }
 
-        $executionToken = $event->getInput()->getOption(self::TOKEN_OPTION_NAME);
+        $executionToken = $this->commandExecutionTracker->getToken($command);
         if (!$executionToken) {
             return;
         }

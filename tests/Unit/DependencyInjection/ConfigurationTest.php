@@ -24,68 +24,24 @@ class ConfigurationTest extends TestCase
         $config = $this->processor->processConfiguration($this->configuration, [[]]);
 
         $this->assertEquals([
-            'enabled'           => true,
-            'purge_threshold'   => 100,
-            'log_output'        => true,
-            'log_errors'        => true,
-            'excluded_commands' => [],
-            'included_commands' => [],
+            'enabled'         => true,
+            'purge_threshold' => 100,
         ], $config);
     }
 
     public function testCustomValidConfiguration(): void
     {
         $inputConfig = [
-            'enabled'           => false,
-            'purge_threshold'   => 30,
-            'log_output'        => false,
-            'log_errors'        => false,
-            'excluded_commands' => ['app:test'],
-            'included_commands' => [],
+            'enabled'         => false,
+            'purge_threshold' => 30,
         ];
 
         $config = $this->processor->processConfiguration($this->configuration, [$inputConfig]);
 
         $this->assertEquals([
-            'enabled'           => false,
-            'purge_threshold'   => 30,
-            'log_output'        => false,
-            'log_errors'        => false,
-            'excluded_commands' => ['app:test'],
-            'included_commands' => [],
+            'enabled'         => false,
+            'purge_threshold' => 30,
         ], $config);
-    }
-
-    public function testIncludedCommandsOnly(): void
-    {
-        $inputConfig = [
-            'included_commands' => ['app:my-command'],
-            'excluded_commands' => [], // Explicitly empty to avoid conflict
-        ];
-
-        $config = $this->processor->processConfiguration($this->configuration, [$inputConfig]);
-
-        $this->assertEquals([
-            'enabled'           => true,
-            'purge_threshold'   => 100,
-            'log_output'        => true,
-            'log_errors'        => true,
-            'excluded_commands' => [],
-            'included_commands' => ['app:my-command'],
-        ], $config);
-    }
-
-    public function testExcludedAndIncludedCommandsTogetherThrowsException(): void
-    {
-        $this->expectException(InvalidConfigurationException::class);
-        $this->expectExceptionMessage('You cannot configure both "included_commands" and "excluded_commands" at the same time.');
-
-        $inputConfig = [
-            'excluded_commands' => ['cache:clear'],
-            'included_commands' => ['app:my-command'],
-        ];
-
-        $this->processor->processConfiguration($this->configuration, [$inputConfig]);
     }
 
     public function testNegativePurgeThresholdThrowsException(): void
@@ -122,27 +78,5 @@ class ConfigurationTest extends TestCase
         ];
 
         $this->processor->processConfiguration($this->configuration, [$inputConfig]);
-    }
-
-    public function testEmptyExcludedCommands(): void
-    {
-        $inputConfig = [
-            'excluded_commands' => [],
-        ];
-
-        $config = $this->processor->processConfiguration($this->configuration, [$inputConfig]);
-
-        $this->assertEquals([], $config['excluded_commands']);
-    }
-
-    public function testEmptyIncludedCommands(): void
-    {
-        $inputConfig = [
-            'included_commands' => [],
-        ];
-
-        $config = $this->processor->processConfiguration($this->configuration, [$inputConfig]);
-
-        $this->assertEquals([], $config['included_commands']);
     }
 }
