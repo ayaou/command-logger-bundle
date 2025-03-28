@@ -40,53 +40,23 @@ jobs:
   # Job 2: Handle release (only on main)
   release:
     runs-on: ubuntu-latest
-    needs: tests  # Runs only if tests pass
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'  # Only on push to main
+    needs: tests  # Only runs if tests pass
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'  # Only on main
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Full Git history for commit analysis
+          fetch-depth: 0  # Full history for commit analysis
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4  # Installs Node.js for semantic-release
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
 
       - name: Install semantic-release
-        run: npm install -g semantic-release @semantic-release/git @semantic-release/changelog @semantic-release/github  # Installs semantic-release and plugins
+        run: npm install -g semantic-release @semantic-release/git @semantic-release/changelog @semantic-release/github
 
       - name: Run semantic-release
-        id: semantic-release  # ID to capture outputs
-        run: |
-          npx semantic-release
-          # Capture version and release URL
-          VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "released=true" >> $GITHUB_OUTPUT
-          RELEASE_URL=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-            https://api.github.com/repos/$GITHUB_REPOSITORY/releases/latest | jq -r .upload_url)
-          echo "release-url=$RELEASE_URL" >> $GITHUB_OUTPUT
+        run: npx semantic-release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Token for GitHub API and Git pushes
-
-      - name: Create release archive
-        if: steps.semantic-release.outputs.released == 'true'  # Only if a release happened
-        run: |
-          mkdir release-files
-          cp -r src config tests docs release-files/
-          cp CHANGELOG.md composer.json LICENSE README.md release-files/
-          cd release-files
-          zip -r ../release.zip .
-        shell: bash
-
-      - name: Upload release asset
-        if: steps.semantic-release.outputs.released == 'true'
-        uses: actions/upload-release-asset@v1  # Uploads the zip as a release asset
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.semantic-release.outputs.release-url }}  # From semantic-release
-          asset_path: release.zip
-          asset_name: command-logger-bundle-${{ steps.semantic-release.outputs.version }}.zip
-          asset_content_type: application/zip
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # For GitHub releases and tagging

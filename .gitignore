@@ -18,3 +18,4 @@ composer.lock
 
 # Quality
 .php-cs-fixer.cache
+coverage
