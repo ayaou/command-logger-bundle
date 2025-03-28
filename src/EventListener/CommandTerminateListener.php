@@ -3,6 +3,7 @@
 namespace Ayaou\CommandLoggerBundle\EventListener;
 
 use Ayaou\CommandLoggerBundle\Entity\CommandLog;
+use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Event\ConsoleTerminateEvent;
 
@@ -10,27 +11,29 @@ class CommandTerminateListener extends AbstractCommandListener
 {
     private EntityManagerInterface $entityManager;
 
-    private bool $enabled;
+    private CommandExecutionTracker $commandExecutionTracker;
 
-    private bool $logOutput;
+    private bool $enabled;
 
     public function __construct(
         EntityManagerInterface $entityManager,
+        CommandExecutionTracker $commandExecutionTracker,
         bool $enabled,
-        bool $logOutput,
     ) {
-        $this->entityManager = $entityManager;
-        $this->enabled       = $enabled;
-        $this->logOutput     = $logOutput;
+        $this->entityManager           = $entityManager;
+        $this->commandExecutionTracker = $commandExecutionTracker;
+        $this->enabled                 = $enabled;
     }
 
     public function onConsoleTerminate(ConsoleTerminateEvent $event): void
     {
-        if (!$this->enabled) {
+        $command = $event->getCommand();
+
+        if (!$this->enabled || !$this->isSupportedCommand($command)) {
             return;
         }
 
-        $executionToken = $event->getInput()->getOption(self::TOKEN_OPTION_NAME);
+        $executionToken = $this->commandExecutionTracker->getToken($command);
         if (!$executionToken) {
             return;
         }
@@ -39,18 +42,13 @@ class CommandTerminateListener extends AbstractCommandListener
             ->findOneBy(['executionToken' => $executionToken]);
 
         if ($log) {
-            if ($this->logOutput) {
-                $output = $event->getOutput();
-                if (method_exists($output, 'fetch')) {
-                    $log->setOutput($output->fetch());
-                }
-            }
-
             $log->setEndTime(new \DateTimeImmutable())
                 ->setExitCode($event->getExitCode());
 
             $this->entityManager->persist($log);
             $this->entityManager->flush();
         }
+
+        $this->commandExecutionTracker->clearToken($command);
     }
 }

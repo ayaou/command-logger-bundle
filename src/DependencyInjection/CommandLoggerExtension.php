@@ -16,10 +16,6 @@ class CommandLoggerExtension extends Extension
 
         $container->setParameter('command_logger.enabled', $processedConfig['enabled']);
         $container->setParameter('command_logger.purge_threshold', $processedConfig['purge_threshold']);
-        $container->setParameter('command_logger.log_output', $processedConfig['log_output']);
-        $container->setParameter('command_logger.log_errors', $processedConfig['log_errors']);
-        $container->setParameter('command_logger.excluded_commands', $processedConfig['excluded_commands']);
-        $container->setParameter('command_logger.included_commands', $processedConfig['included_commands']);
 
         $loader = new YamlFileLoader($container, new FileLocator(__DIR__.'/../../config'));
         $loader->load('services.yaml');

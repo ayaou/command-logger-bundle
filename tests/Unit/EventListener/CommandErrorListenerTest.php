@@ -3,11 +3,10 @@
 namespace Ayaou\CommandLoggerBundle\Tests\Unit\EventListener;
 
 use Ayaou\CommandLoggerBundle\Entity\CommandLog;
-use Ayaou\CommandLoggerBundle\EventListener\AbstractCommandListener;
 use Ayaou\CommandLoggerBundle\EventListener\CommandErrorListener;
+use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\EntityRepository;
-use PHPUnit\Framework\MockObject\Exception;
+use Doctrine\Persistence\ObjectRepository;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Command\Command;
@@ -21,26 +20,26 @@ class CommandErrorListenerTest extends TestCase
 
     private MockObject|EntityManagerInterface $entityManager;
 
+    private MockObject|CommandExecutionTracker $commandExecutionTracker;
+
     private ConsoleErrorEvent $event;
 
-    private MockObject|Command $command;
+    private Command $command;
 
     private MockObject|InputInterface $input;
 
     private MockObject|OutputInterface $output;
 
-    private MockObject|EntityRepository $repository;
+    private MockObject|ObjectRepository $repository;
 
-    /**
-     * @throws Exception
-     */
     protected function setUp(): void
     {
-        $this->entityManager = $this->createMock(EntityManagerInterface::class);
-        $this->command       = $this->createMock(Command::class);
-        $this->input         = $this->createMock(InputInterface::class);
-        $this->output        = $this->createMock(OutputInterface::class);
-        $this->repository    = $this->createMock(EntityRepository::class);
+        $this->entityManager           = $this->createMock(EntityManagerInterface::class);
+        $this->commandExecutionTracker = $this->createMock(CommandExecutionTracker::class);
+        $this->command                 = new TestCommand();
+        $this->input                   = $this->createMock(InputInterface::class);
+        $this->output                  = $this->createMock(OutputInterface::class);
+        $this->repository              = $this->createMock(ObjectRepository::class);
 
         $error       = new \Exception('Test error');
         $this->event = new ConsoleErrorEvent($this->input, $this->output, $error, $this->command);
@@ -51,32 +50,30 @@ class CommandErrorListenerTest extends TestCase
 
         $this->listener = new CommandErrorListener(
             $this->entityManager,
-            true,
-            true,
+            $this->commandExecutionTracker,
+            true, // Enabled by default
         );
     }
 
     public function testDoesNothingWhenDisabled(): void
     {
-        $listener = new CommandErrorListener($this->entityManager, false, true);
-        $this->input->expects($this->never())->method('getOption');
+        $listener = new CommandErrorListener($this->entityManager, $this->commandExecutionTracker, false);
+        $this->entityManager->expects($this->never())->method('getRepository');
 
         $listener->onConsoleError($this->event);
     }
 
-    public function testDoesNothingWhenLogErrorsDisabled(): void
+    public function testDoesNothingWhenNoCommand(): void
     {
-        $listener = new CommandErrorListener($this->entityManager, true, false);
-        $this->input->expects($this->never())->method('getOption');
+        $this->event = new ConsoleErrorEvent($this->input, $this->output, new \Exception('Test error'), null);
+        $this->entityManager->expects($this->never())->method('getRepository');
 
-        $listener->onConsoleError($this->event);
+        $this->listener->onConsoleError($this->event);
     }
 
     public function testDoesNothingWhenNoExecutionToken(): void
     {
-        $this->input->method('getOption')
-            ->with(CommandErrorListener::TOKEN_OPTION_NAME)
-            ->willReturn(null);
+        $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn(null);
         $this->entityManager->expects($this->never())->method('getRepository');
 
         $this->listener->onConsoleError($this->event);
@@ -84,9 +81,7 @@ class CommandErrorListenerTest extends TestCase
 
     public function testDoesNothingWhenNoLogFound(): void
     {
-        $this->input->method('getOption')
-            ->with(AbstractCommandListener::TOKEN_OPTION_NAME)
-            ->willReturn('some-token');
+        $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn('some-token');
         $this->repository->method('findOneBy')
             ->with(['executionToken' => 'some-token'])
             ->willReturn(null);
@@ -95,60 +90,41 @@ class CommandErrorListenerTest extends TestCase
         $this->listener->onConsoleError($this->event);
     }
 
-    public function testLogsErrorWithSingleException(): void
+    public function testUpdatesLogWhenErrorOccurs(): void
     {
-        $innerError  = new \RuntimeException('Inner error');
-        $this->event = new ConsoleErrorEvent($this->input, $this->output, $innerError, $this->command);
+        $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn('some-token');
 
-        $log = new CommandLog();
-        $this->input->method('getOption')
-            ->with(AbstractCommandListener::TOKEN_OPTION_NAME)
-            ->willReturn('some-token');
-        $this->repository->method('findOneBy')
-            ->with(['executionToken' => 'some-token'])
-            ->willReturn($log);
-        $this->entityManager->expects($this->once())->method('persist')
-            ->with(
-                $this->callback(function (CommandLog $persistedLog) use ($log) {
-                    $errorMessage = $persistedLog->getErrorMessage();
+        $log = $this->createMock(CommandLog::class);
+        $this->repository->method('findOneBy')->with(['executionToken' => 'some-token'])->willReturn($log);
 
-                    return $persistedLog === $log
-                        && !str_contains($errorMessage, 'Outer error')
-                        && str_contains($errorMessage, 'Inner error')
-                        && !str_contains($errorMessage, "\n\n\n");
-                }),
-            );
+        $log->expects($this->once())->method('setErrorMessage');
+        $this->entityManager->expects($this->once())->method('persist')->with($log);
         $this->entityManager->expects($this->once())->method('flush');
 
         $this->listener->onConsoleError($this->event);
     }
 
-    public function testLogsErrorWithNestedExceptions(): void
+    public function testErrorDetailsAreFormattedCorrectly(): void
     {
-        $innerError  = new \RuntimeException('Inner error');
-        $outerError  = new \Exception('Outer error', 0, $innerError);
-        $this->event = new ConsoleErrorEvent($this->input, $this->output, $outerError, $this->command);
+        $error      = new \Exception('Main error', 0, new \Exception('Previous error'));
+        $reflection = new \ReflectionClass($this->listener);
+        $method     = $reflection->getMethod('getErrorDetails');
+        $method->setAccessible(true);
 
+        $result = $method->invoke($this->listener, $error);
+
+        $this->assertIsArray($result);
+        $this->assertNotEmpty($result);
+        $this->assertStringContainsString('Main error', $result[0]);
+        $this->assertStringContainsString('Previous error', $result[1]);
+    }
+
+    public function testGetErrorMessage(): void
+    {
         $log = new CommandLog();
-        $this->input->method('getOption')
-            ->with(AbstractCommandListener::TOKEN_OPTION_NAME)
-            ->willReturn('some-token');
-        $this->repository->method('findOneBy')
-            ->with(['executionToken' => 'some-token'])
-            ->willReturn($log);
-        $this->entityManager->expects($this->once())->method('persist')
-            ->with(
-                $this->callback(function (CommandLog $persistedLog) use ($log) {
-                    $errorMessage = $persistedLog->getErrorMessage();
+        $log->setErrorMessage('Test error message');
 
-                    return $persistedLog === $log
-                        && str_contains($errorMessage, 'Outer error')
-                        && str_contains($errorMessage, 'Inner error')
-                        && str_contains($errorMessage, "\n\n\n");
-                }),
-            );
-        $this->entityManager->expects($this->once())->method('flush');
-
-        $this->listener->onConsoleError($this->event);
+        $this->assertEquals('Test error message', $log->getErrorMessage());
+        $this->assertNull($log->getId());
     }
 }
