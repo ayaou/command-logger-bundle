@@ -4,6 +4,7 @@ namespace Ayaou\CommandLoggerBundle\Tests\Unit\DependencyInjection;
 
 use Ayaou\CommandLoggerBundle\DependencyInjection\CommandLoggerExtension;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 class CommandLoggerExtensionTest extends TestCase
@@ -46,7 +47,7 @@ class CommandLoggerExtensionTest extends TestCase
 
     public function testLoadWithNegativePurgeThresholdFails(): void
     {
-        $this->expectException(\Symfony\Component\Config\Definition\Exception\InvalidConfigurationException::class);
+        $this->expectException(InvalidConfigurationException::class);
         $this->expectExceptionMessage('The value -1 is too small for path "command_logger.purge_threshold". Should be greater than or equal to 1');
 
         $config = [

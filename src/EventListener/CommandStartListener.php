@@ -16,20 +16,24 @@ class CommandStartListener extends AbstractCommandListener
 
     private bool $enabled;
 
+    private array $otherCommands;
+
     public function __construct(
         EntityManagerInterface $entityManager,
         CommandExecutionTracker $commandExecutionTracker,
         bool $enabled,
+        array $otherCommands = [],
     ) {
         $this->entityManager           = $entityManager;
         $this->commandExecutionTracker = $commandExecutionTracker;
         $this->enabled                 = $enabled;
+        $this->otherCommands           = $otherCommands;
     }
 
     public function onConsoleCommand(ConsoleCommandEvent $event): void
     {
         $command = $event->getCommand();
-        if (!$this->enabled || !$command || !$this->isSupportedCommand($command)) {
+        if (!$this->enabled || !$command || !$this->isSupportedCommand($command, $this->otherCommands)) {
             return;
         }
 

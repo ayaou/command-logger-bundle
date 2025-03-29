@@ -7,17 +7,20 @@ use Symfony\Component\Console\Command\Command;
 
 class AbstractCommandListener
 {
-    protected function isSupportedCommand(Command $command): bool
+    protected function isSupportedCommand(Command $command, array $otherCommands): bool
     {
-        $commandName = $command->getName();
-        if (null === $commandName) {
-            return false;
+        if ($command->getName() && in_array($command->getName(), $otherCommands, true)) {
+            return true;
         }
-        // Use reflection to check for the CommandLogger attribute
+
+        return $this->hasCommandLoggerAttribute($command);
+    }
+
+    private function hasCommandLoggerAttribute(Command $command): bool
+    {
         $reflection = new \ReflectionClass($command);
         $attributes = $reflection->getAttributes(CommandLogger::class);
 
-        // Return true if the attribute exists, false otherwise
         return !empty($attributes);
     }
 }

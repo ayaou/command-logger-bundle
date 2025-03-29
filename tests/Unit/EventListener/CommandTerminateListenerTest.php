@@ -52,12 +52,13 @@ class CommandTerminateListenerTest extends TestCase
             $this->entityManager,
             $this->commandExecutionTracker,
             true, // Enabled by default
+            [],
         );
     }
 
     public function testDoesNothingWhenDisabled(): void
     {
-        $listener = new CommandTerminateListener($this->entityManager, $this->commandExecutionTracker, false);
+        $listener = new CommandTerminateListener($this->entityManager, $this->commandExecutionTracker, false, []);
         $this->entityManager->expects($this->never())->method('persist');
         $this->commandExecutionTracker->expects($this->never())->method('getToken');
 
