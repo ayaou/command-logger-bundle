@@ -52,12 +52,13 @@ class CommandErrorListenerTest extends TestCase
             $this->entityManager,
             $this->commandExecutionTracker,
             true, // Enabled by default
+            [],
         );
     }
 
     public function testDoesNothingWhenDisabled(): void
     {
-        $listener = new CommandErrorListener($this->entityManager, $this->commandExecutionTracker, false);
+        $listener = new CommandErrorListener($this->entityManager, $this->commandExecutionTracker, false, []);
         $this->entityManager->expects($this->never())->method('getRepository');
 
         $listener->onConsoleError($this->event);
@@ -109,7 +110,6 @@ class CommandErrorListenerTest extends TestCase
         $error      = new \Exception('Main error', 0, new \Exception('Previous error'));
         $reflection = new \ReflectionClass($this->listener);
         $method     = $reflection->getMethod('getErrorDetails');
-        $method->setAccessible(true);
 
         $result = $method->invoke($this->listener, $error);
 

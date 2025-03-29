@@ -20,13 +20,18 @@ Ayaou\CommandLoggerBundle\AyaouCommandLoggerBundle::class => ['all' => true],
 Add the following configuration in `config/packages/command_logger.yaml`:
 ```yaml
 command_logger:
-  enabled: true  # Enable or disable logging
-  purge_threshold: 100  # Number of days from which old logs will be deleted. For example, if set to 30, logs older than 30 days will be removed.
+  enabled: true         # Enable or disable logging (default: true)
+  purge_threshold: 100  # Days after which old logs are deleted (e.g., 100 means logs older than 100 days are removed)
+  commands:            # List of commands to log if they are not annotated (This can be useful for commands located in third-party bundles)
+    - app:example-command
+    - app:another-command
 ```
 
 ## Usage
 
 ### Enabling Logging on a Command
+Use configuration `commands` array (if not using attributes) Or:
+
 Use the `CommandLogger` attribute on any Symfony command to enable logging:
 ```php
 use Ayaou\CommandLoggerBundle\Attribute\CommandLogger;
@@ -58,20 +63,15 @@ The logs are stored in the `command_log` table with the following fields:
 - `executionToken` – Unique identifier for execution tracking
 
 ## Purging Old Logs
-A built-in mechanism automatically purges logs older than the configured threshold, which is configurable and can be adjusted in the bundle's settings. You can manually trigger the purge with:
+The bundle includes an automatic mechanism to purge logs older than the configured `purge_threshold`. You can also manually trigger log cleanup using the following command:
 ```bash
 bin/console command-logger:purge
 ```
-If the `--threshold` option is not provided, the default threshold value from the configuration will be used.
-Optionally, you can specify a custom threshold (in days) using the `--threshold` or `-t` option. This represents the number of days from which old logs will be deleted. For example, if set to 30, logs older than 30 days will be removed:
+By default, this uses the `purge_threshold` value from the configuration. To override it, specify a custom threshold (in days) with the `--threshold` or `-t` option:
 ```bash
 bin/console command-logger:purge --threshold=30
 ```
-If no threshold is provided, the default configured value will be used.
-A built-in mechanism automatically purges logs older than the configured threshold. You can manually trigger the purge with:
-```bash
-bin/console command-logger:purge
-```
+For example, `--threshold=30` removes logs older than 30 days
 
 ## License
 MIT License

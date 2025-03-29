@@ -43,14 +43,39 @@ class CommandStartListenerTest extends TestCase
             $this->entityManager,
             $this->commandExecutionTracker,
             true, // Enabled by default
+            [],
         );
     }
 
     public function testDoesNothingWhenDisabled(): void
     {
-        $listener = new CommandStartListener($this->entityManager, $this->commandExecutionTracker, false);
+        $listener = new CommandStartListener($this->entityManager, $this->commandExecutionTracker, false, []);
         $this->entityManager->expects($this->never())->method('persist');
         $this->commandExecutionTracker->expects($this->never())->method('setToken');
+
+        $listener->onConsoleCommand($this->event);
+    }
+
+    public function testDoesNothingWhenUsedWithNonConfiguredCommand(): void
+    {
+        $command     = new TestCommandWithoutAttribute();
+        $this->event = new ConsoleCommandEvent($command, $this->input, $this->output);
+
+        $listener = new CommandStartListener($this->entityManager, $this->commandExecutionTracker, true, []);
+        $this->entityManager->expects($this->never())->method('persist');
+        $this->commandExecutionTracker->expects($this->never())->method('setToken');
+
+        $listener->onConsoleCommand($this->event);
+    }
+
+    public function testDoesNothingWhenUsedWithConfiguredCommand(): void
+    {
+        $command     = new TestCommandWithoutAttribute();
+        $this->event = new ConsoleCommandEvent($command, $this->input, $this->output);
+
+        $listener = new CommandStartListener($this->entityManager, $this->commandExecutionTracker, true, ['app:command-without-attribute']);
+        $this->entityManager->expects($this->once())->method('persist');
+        $this->commandExecutionTracker->expects($this->once())->method('setToken');
 
         $listener->onConsoleCommand($this->event);
     }
@@ -66,11 +91,12 @@ class CommandStartListenerTest extends TestCase
 
     public function testDoesNothingWhenCommandHasNoName(): void
     {
-        $command = $this->createMock(Command::class);
-        $command->method('getName')->willReturn(null);
+        $command = new TestCommandWithoutName();
+
         $this->event = new ConsoleCommandEvent($command, $this->input, $this->output);
 
         $this->entityManager->expects($this->never())->method('persist');
+        $this->entityManager->expects($this->never())->method('flush');
         $this->commandExecutionTracker->expects($this->never())->method('setToken');
 
         $this->listener->onConsoleCommand($this->event);
@@ -96,6 +122,7 @@ class CommandStartListenerTest extends TestCase
                     && $log->getStartTime() instanceof \DateTimeImmutable
                     && Uuid::isValid($log->getExecutionToken());
             }));
+
         $this->entityManager->expects($this->once())->method('flush');
 
         $this->listener->onConsoleCommand($this->event);

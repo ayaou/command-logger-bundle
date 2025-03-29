@@ -26,6 +26,7 @@ class ConfigurationTest extends TestCase
         $this->assertEquals([
             'enabled'         => true,
             'purge_threshold' => 100,
+            'commands'        => [],
         ], $config);
     }
 
@@ -34,6 +35,7 @@ class ConfigurationTest extends TestCase
         $inputConfig = [
             'enabled'         => false,
             'purge_threshold' => 30,
+            'commands'        => ['app:test-command'],
         ];
 
         $config = $this->processor->processConfiguration($this->configuration, [$inputConfig]);
@@ -41,6 +43,7 @@ class ConfigurationTest extends TestCase
         $this->assertEquals([
             'enabled'         => false,
             'purge_threshold' => 30,
+            'commands'        => ['app:test-command'],
         ], $config);
     }
 

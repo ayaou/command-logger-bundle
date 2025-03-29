@@ -12,6 +12,7 @@ services:
     class: Ayaou\CommandLoggerBundle\EventListener\CommandStartListener
     arguments:
       $enabled: '%command_logger.enabled%'
+      $otherCommands: '%command_logger.commands%'
     tags:
       - { name: kernel.event_listener, event: console.command, method: onConsoleCommand }
 
@@ -19,6 +20,7 @@ services:
     class: Ayaou\CommandLoggerBundle\EventListener\CommandTerminateListener
     arguments:
       $enabled: '%command_logger.enabled%'
+      $otherCommands: '%command_logger.commands%'
     tags:
       - { name: kernel.event_listener, event: console.terminate, method: onConsoleTerminate }
 
@@ -26,6 +28,7 @@ services:
     class: Ayaou\CommandLoggerBundle\EventListener\CommandErrorListener
     arguments:
       $enabled: '%command_logger.enabled%'
+      $otherCommands: '%command_logger.commands%'
     tags:
       - { name: kernel.event_listener, event: console.error, method: onConsoleError }
 
