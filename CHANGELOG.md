@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/ayaou/command-logger-bundle/compare/v1.0.0...v1.1.0) (2025-03-29)
+
+
+### Features
+
+* Lower php support to 8.1 & Update readme file ([06b16aa](https://github.com/ayaou/command-logger-bundle/commit/06b16aa0e7b0a9aa373cc8485b0fe82b3ddbaf2e))
+
 # 1.0.0 (2025-03-28)
 
 
