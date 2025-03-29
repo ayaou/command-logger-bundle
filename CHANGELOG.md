@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/ayaou/command-logger-bundle/compare/v1.2.0...v1.3.0) (2025-03-29)
+
+
+### Features
+
+* Allow to log other commands via configuration ([60d2709](https://github.com/ayaou/command-logger-bundle/commit/60d2709925a07ca14dfb84f2c2370d4509d9f085))
+
 # [1.2.0](https://github.com/ayaou/command-logger-bundle/compare/v1.1.0...v1.2.0) (2025-03-29)
 
 
