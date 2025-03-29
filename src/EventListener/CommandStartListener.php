@@ -33,13 +33,18 @@ class CommandStartListener extends AbstractCommandListener
             return;
         }
 
+        $commandName = $command->getName();
+        if (!$commandName) {
+            return;
+        }
+
         $input          = $event->getInput();
         $log            = new CommandLog();
         $executionToken = Uuid::v4()->toRfc4122();
 
         $this->commandExecutionTracker->setToken($command, $executionToken);
 
-        $log->setCommandName($command->getName())
+        $log->setCommandName($commandName)
             ->setArguments($input->getArguments() + $input->getOptions())
             ->setStartTime(new \DateTimeImmutable())
             ->setExecutionToken($executionToken);
