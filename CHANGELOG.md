@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/ayaou/command-logger-bundle/compare/v1.1.0...v1.2.0) (2025-03-29)
+
+
+### Features
+
+* Add Symfony 7 support ([448ee2c](https://github.com/ayaou/command-logger-bundle/commit/448ee2ce1e36fc79836c4633337078daecf62c04))
+
 # [1.1.0](https://github.com/ayaou/command-logger-bundle/compare/v1.0.0...v1.1.0) (2025-03-29)
 
 
