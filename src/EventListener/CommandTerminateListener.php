@@ -29,7 +29,7 @@ class CommandTerminateListener extends AbstractCommandListener
     {
         $command = $event->getCommand();
 
-        if (!$this->enabled || !$this->isSupportedCommand($command)) {
+        if (!$this->enabled || !$command || !$this->isSupportedCommand($command)) {
             return;
         }
 
