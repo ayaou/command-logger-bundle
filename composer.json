@@ -19,7 +19,7 @@
     "symfony/uid": "^6.4|^7.0",
     "symfony/yaml": "^6.4|^7.0",
     "doctrine/doctrine-bundle": "^2.7",
-    "doctrine/orm": "^2.14"
+    "doctrine/orm": "^2|^3"
   },
   "require-dev": {
     "phpunit/phpunit": "^10",
