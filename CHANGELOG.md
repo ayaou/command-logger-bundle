@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/ayaou/command-logger-bundle/compare/v1.3.0...v1.4.0) (2025-05-05)
+
+
+### Features
+
+* Support doctrine ORM 3 ([51e0b45](https://github.com/ayaou/command-logger-bundle/commit/51e0b45ede6d1bb9ebaa9a5180249202b9b282fb))
+
 # [1.3.0](https://github.com/ayaou/command-logger-bundle/compare/v1.2.0...v1.3.0) (2025-03-29)
 
 
