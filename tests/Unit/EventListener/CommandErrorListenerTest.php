@@ -4,6 +4,7 @@ namespace Ayaou\CommandLoggerBundle\Tests\Unit\EventListener;
 
 use Ayaou\CommandLoggerBundle\Entity\CommandLog;
 use Ayaou\CommandLoggerBundle\EventListener\CommandErrorListener;
+use Ayaou\CommandLoggerBundle\Repository\CommandLogRepository;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ObjectRepository;
@@ -39,7 +40,7 @@ class CommandErrorListenerTest extends TestCase
         $this->command                 = new TestCommand();
         $this->input                   = $this->createMock(InputInterface::class);
         $this->output                  = $this->createMock(OutputInterface::class);
-        $this->repository              = $this->createMock(ObjectRepository::class);
+        $this->repository              = $this->createMock(CommandLogRepository::class); // Changed to EntityRepository
 
         $error       = new \Exception('Test error');
         $this->event = new ConsoleErrorEvent($this->input, $this->output, $error, $this->command);
