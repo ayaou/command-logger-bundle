@@ -20,6 +20,7 @@ class CommandErrorListener extends AbstractCommandListener
     public function __construct(
         EntityManagerInterface $entityManager,
         CommandExecutionTracker $commandExecutionTracker,
+        iterable $commandMap,
         bool $enabled,
         array $otherCommands = [],
     ) {
@@ -27,6 +28,8 @@ class CommandErrorListener extends AbstractCommandListener
         $this->commandExecutionTracker = $commandExecutionTracker;
         $this->enabled                 = $enabled;
         $this->otherCommands           = $otherCommands;
+
+        parent::__construct($commandMap);
     }
 
     public function onConsoleError(ConsoleErrorEvent $event): void

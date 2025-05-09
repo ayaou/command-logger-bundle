@@ -42,6 +42,7 @@ class CommandStartListenerTest extends TestCase
         $this->listener = new CommandStartListener(
             $this->entityManager,
             $this->commandExecutionTracker,
+            [],
             true, // Enabled by default
             [],
         );
@@ -49,7 +50,7 @@ class CommandStartListenerTest extends TestCase
 
     public function testDoesNothingWhenDisabled(): void
     {
-        $listener = new CommandStartListener($this->entityManager, $this->commandExecutionTracker, false, []);
+        $listener = new CommandStartListener($this->entityManager, $this->commandExecutionTracker, [], false, []);
         $this->entityManager->expects($this->never())->method('persist');
         $this->commandExecutionTracker->expects($this->never())->method('setToken');
 
@@ -61,7 +62,7 @@ class CommandStartListenerTest extends TestCase
         $command     = new TestCommandWithoutAttribute();
         $this->event = new ConsoleCommandEvent($command, $this->input, $this->output);
 
-        $listener = new CommandStartListener($this->entityManager, $this->commandExecutionTracker, true, []);
+        $listener = new CommandStartListener($this->entityManager, $this->commandExecutionTracker, [], true, []);
         $this->entityManager->expects($this->never())->method('persist');
         $this->commandExecutionTracker->expects($this->never())->method('setToken');
 
@@ -73,7 +74,7 @@ class CommandStartListenerTest extends TestCase
         $command     = new TestCommandWithoutAttribute();
         $this->event = new ConsoleCommandEvent($command, $this->input, $this->output);
 
-        $listener = new CommandStartListener($this->entityManager, $this->commandExecutionTracker, true, ['app:command-without-attribute']);
+        $listener = new CommandStartListener($this->entityManager, $this->commandExecutionTracker, [], true, ['app:command-without-attribute']);
         $this->entityManager->expects($this->once())->method('persist');
         $this->commandExecutionTracker->expects($this->once())->method('setToken');
 
