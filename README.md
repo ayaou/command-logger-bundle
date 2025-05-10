@@ -62,6 +62,29 @@ The logs are stored in the `command_log` table with the following fields:
 - `errorMessage` – Error message if applicable
 - `executionToken` – Unique identifier for execution tracking
 
+## Show Command Logs
+The `command-logger:show` command displays logged command executions from the `command_log` table. It supports filtering, pagination, and viewing specific entries by ID.
+
+```bash
+bin/console command-logger:show [name] [--limit=LIMIT] [--code=CODE] [--id=ID] [--error] [--success]
+```
+### Description
+This command retrieves and displays command execution logs. By default, it shows the latest 10 entries, ordered by startTime in descending order,
+in a tabular format. You can filter by command name, exit code, or success/error status, and view a single entry by ID. 
+
+The command supports pagination, allowing you to press Enter to view more entries interactively.
+
+### Arguments
+* name (optional): Filters logs by the command name (e.g., app:example-command).
+
+### Options
+
+* --limit|-l (optional): Specifies the number of entries to show per page (default: 10).
+* --code|-c (optional): Filters logs by a specific exit code (e.g., --code=0 for successful commands).
+* --id (optional): Displays a single log entry by its ID (e.g., --id=123). When used, no other arguments or options are allowed.
+* --error (optional): Filters logs to show only entries with non-zero exit codes (indicating errors). Cannot be used with --success or --code.
+* --success (optional): Filters logs to show only entries with an exit code of 0 (indicating success). Cannot be used with --error or --code.
+
 ## Purging Old Logs
 The bundle includes an automatic mechanism to purge logs older than the configured `purge_threshold`. You can also manually trigger log cleanup using the following command:
 ```bash
