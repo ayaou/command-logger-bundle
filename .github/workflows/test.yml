@@ -29,7 +29,7 @@ jobs:
           extensions: sqlite3, pdo_sqlite  # For Doctrine/SQLite in tests
 
       - name: Install dependencies
-        run: composer install --prefer-dist --no-progress --dev  # Installs PHP deps
+        run: composer install --prefer-dist --no-progress # Installs PHP deps
 
       - name: Run integration tests
         run: vendor/bin/phpunit tests/Integration  # Runs integration tests
@@ -50,7 +50,7 @@ jobs:
           extensions: sqlite3, pdo_sqlite  # For Doctrine/SQLite in tests
 
       - name: Install dependencies
-        run: composer install --prefer-dist --no-progress --dev  # Installs PHP deps
+        run: composer install --prefer-dist --no-progress # Installs PHP deps
 
       - name: Run integration tests
         run: vendor/bin/phpunit tests/Integration  # Runs integration tests
@@ -71,7 +71,7 @@ jobs:
           extensions: sqlite3, pdo_sqlite  # For Doctrine/SQLite in tests
 
       - name: Install dependencies
-        run: composer install --prefer-dist --no-progress --dev  # Installs PHP deps
+        run: composer install --prefer-dist --no-progress # Installs PHP deps
 
       - name: Run integration tests
         run: vendor/bin/phpunit tests/Integration  # Runs integration tests
@@ -92,7 +92,7 @@ jobs:
           extensions: sqlite3, pdo_sqlite  # For Doctrine/SQLite in tests
 
       - name: Install dependencies
-        run: composer install --prefer-dist --no-progress --dev  # Installs PHP deps
+        run: composer install --prefer-dist --no-progress # Installs PHP deps
 
       - name: Run integration tests
         run: vendor/bin/phpunit tests/Integration  # Runs integration tests

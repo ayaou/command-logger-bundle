@@ -16,6 +16,8 @@ composer.lock
 # Quality
 .php-cs-fixer.cache
 
-# Quality
-.php-cs-fixer.cache
+# PHPUnit
+phpunit.xml
+.phpunit.result.cache
+.phpunit.cache
 .coverage
