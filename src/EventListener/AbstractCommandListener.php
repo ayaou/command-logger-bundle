@@ -17,7 +17,12 @@ class AbstractCommandListener
 
     protected function isSupportedCommand(Command $command, array $otherCommands): bool
     {
-        if ($command->getName() && in_array($command->getName(), $otherCommands, true)) {
+        $name = $command->getName();
+        if (!$name) {
+            return false;
+        }
+
+        if ($this->isSupportedOnConfig($name, $otherCommands)) {
             return true;
         }
 
@@ -62,5 +67,32 @@ class AbstractCommandListener
         }
 
         return false;
+    }
+
+    private function isSupportedOnConfig(string $name, array $otherCommands): bool
+    {
+        if (in_array($name, $otherCommands, true)) {
+            return true;
+        }
+
+        foreach ($otherCommands as $pattern) {
+            if ($this->matchWithWildcard($pattern, $name)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function matchWithWildcard(string $pattern, string $name): bool
+    {
+        // Escape special regex characters in the pattern, except for '*'.
+        $escapedPattern = preg_quote($pattern, '/');
+
+        // Replace '*' in the pattern with '.*' for regex matching.
+        $regex = '/^'.str_replace('\*', '.*', $escapedPattern).'$/';
+
+        // Perform a regex match.
+        return (bool) preg_match($regex, $name);
     }
 }

@@ -13,7 +13,9 @@ use Symfony\Component\Console\Tester\CommandTester;
 class ShowCommandLoggerEntriesCommandTest extends AppKernelTestCase
 {
     private EntityManagerInterface $entityManager;
+
     private CommandLogRepository $repository;
+
     private CommandTester $commandTester;
 
     protected function setUp(): void
@@ -24,11 +26,11 @@ class ShowCommandLoggerEntriesCommandTest extends AppKernelTestCase
 
         // Get the entity manager and repository
         $this->entityManager = self::$kernel->getContainer()->get('doctrine.orm.entity_manager');
-        $this->repository = $this->entityManager->getRepository(CommandLog::class);
+        $this->repository    = $this->entityManager->getRepository(CommandLog::class);
 
         // Create the database schema
         $schemaTool = new SchemaTool($this->entityManager);
-        $metadata = $this->entityManager->getClassMetadata(CommandLog::class);
+        $metadata   = $this->entityManager->getClassMetadata(CommandLog::class);
         $schemaTool->createSchema([$metadata]);
 
         // Find the command by name
@@ -39,7 +41,7 @@ class ShowCommandLoggerEntriesCommandTest extends AppKernelTestCase
     {
         // Drop the schema to reset the in-memory database
         $schemaTool = new SchemaTool($this->entityManager);
-        $metadata = $this->entityManager->getClassMetadata(CommandLog::class);
+        $metadata   = $this->entityManager->getClassMetadata(CommandLog::class);
         $schemaTool->dropSchema([$metadata]);
 
         $this->entityManager->close();
@@ -276,10 +278,11 @@ class ShowCommandLoggerEntriesCommandTest extends AppKernelTestCase
 
         // Set the ID explicitly to match expected values
         $reflection = new \ReflectionClass($entry);
-        $property = $reflection->getProperty('id');
-         $property->setValue($entry, $id);
+        $property   = $reflection->getProperty('id');
+        $property->setValue($entry, $id);
 
         $this->entityManager->persist($entry);
+
         return $entry;
     }
 }
