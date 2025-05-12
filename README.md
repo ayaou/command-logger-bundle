@@ -22,9 +22,10 @@ Add the following configuration in `config/packages/command_logger.yaml`:
 command_logger:
   enabled: true         # Enable or disable logging (default: true)
   purge_threshold: 100  # Days after which old logs are deleted (e.g., 100 means logs older than 100 days are removed)
-  commands:            # List of commands to log if they are not annotated (This can be useful for commands located in third-party bundles)
+  commands:            # List of commands to log if they are not annotated, we can also use wildcards (This can be useful for commands located in third-party bundles)
     - app:example-command
     - app:another-command
+    - make:*
 ```
 
 ## Usage
