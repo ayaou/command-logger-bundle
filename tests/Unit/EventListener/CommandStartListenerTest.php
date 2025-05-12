@@ -50,7 +50,7 @@ class CommandStartListenerTest extends TestCase
 
     public function testDoesNothingWhenDisabled(): void
     {
-        $listener = new CommandStartListener($this->entityManager, $this->commandExecutionTracker, [], false, []);
+        $listener = new CommandStartListener($this->entityManager, $this->commandExecutionTracker, ['test_command'], false, []);
         $this->entityManager->expects($this->never())->method('persist');
         $this->commandExecutionTracker->expects($this->never())->method('setToken');
 
