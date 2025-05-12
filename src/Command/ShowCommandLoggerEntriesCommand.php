@@ -119,11 +119,11 @@ class ShowCommandLoggerEntriesCommand extends Command
                 break;
             }
 
-            $io->write('[Press Enter to show more entries, or type anything to exit]: ');
-            $response = trim(fgets(STDIN) ?: '');
-            if ('' !== $response) {
+            $response = $io->ask('[Press Enter to show more entries, or type anything to exit]', '');
+            if (null !== $response && '' !== trim($response)) {
                 break;
             }
+
             $io->newLine();
         }
 
