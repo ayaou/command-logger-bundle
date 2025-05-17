@@ -1,3 +1,16 @@
+# [1.5.0](https://github.com/ayaou/command-logger-bundle/compare/v1.4.0...v1.5.0) (2025-05-17)
+
+
+### Bug Fixes
+
+* Capture new Symfony 7.3 command style ([cee5d16](https://github.com/ayaou/command-logger-bundle/commit/cee5d1629e9e1ab72e35fd3ded3473529805165e))
+
+
+### Features
+
+* [#15](https://github.com/ayaou/command-logger-bundle/issues/15): Support wild cards on commands configuration ([692e249](https://github.com/ayaou/command-logger-bundle/commit/692e24958d42ea3a49c7943796e79b97f82507d2))
+* New command to show logs ([3d242b3](https://github.com/ayaou/command-logger-bundle/commit/3d242b3ce38906af438f8230f2ffbb6af51e69d4))
+
 # [1.4.0](https://github.com/ayaou/command-logger-bundle/compare/v1.3.0...v1.4.0) (2025-05-05)
 
 
