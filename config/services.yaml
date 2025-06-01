@@ -11,7 +11,6 @@ services:
   Ayaou\CommandLoggerBundle\EventListener\CommandStartListener:
     class: Ayaou\CommandLoggerBundle\EventListener\CommandStartListener
     arguments:
-      $commandMap: !tagged_iterator console.command
       $enabled: '%command_logger.enabled%'
       $otherCommands: '%command_logger.commands%'
     tags:
@@ -20,7 +19,6 @@ services:
   Ayaou\CommandLoggerBundle\EventListener\CommandTerminateListener:
     class: Ayaou\CommandLoggerBundle\EventListener\CommandTerminateListener
     arguments:
-      $commandMap: !tagged_iterator console.command
       $enabled: '%command_logger.enabled%'
       $otherCommands: '%command_logger.commands%'
     tags:
@@ -29,7 +27,6 @@ services:
   Ayaou\CommandLoggerBundle\EventListener\CommandErrorListener:
     class: Ayaou\CommandLoggerBundle\EventListener\CommandErrorListener
     arguments:
-      $commandMap: !tagged_iterator console.command
       $enabled: '%command_logger.enabled%'
       $otherCommands: '%command_logger.commands%'
     tags:
