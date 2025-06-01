@@ -1,3 +1,10 @@
+## [1.5.1](https://github.com/ayaou/command-logger-bundle/compare/v1.5.0...v1.5.1) (2025-06-01)
+
+
+### Bug Fixes
+
+* Revert "fix: Capture new Symfony 7.3 command style" ([b183911](https://github.com/ayaou/command-logger-bundle/commit/b18391154f375ed6dfbb147dc700c4abc9dbf001))
+
 # [1.5.0](https://github.com/ayaou/command-logger-bundle/compare/v1.4.0...v1.5.0) (2025-05-17)
 
 
