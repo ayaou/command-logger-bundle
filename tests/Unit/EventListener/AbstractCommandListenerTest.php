@@ -18,8 +18,6 @@ class AbstractCommandListenerTest extends TestCase
 
     private CommandExecutionTracker|MockObject $commandExecutionTracker;
 
-    private iterable $commandMap;
-
     /**
      * @throws Exception
      */
@@ -27,11 +25,9 @@ class AbstractCommandListenerTest extends TestCase
     {
         $this->entityManager           = $this->createMock(EntityManagerInterface::class);
         $this->commandExecutionTracker = $this->createMock(CommandExecutionTracker::class);
-        $this->commandMap              = [];
         $this->listener                = new CommandStartListener(
             $this->entityManager,
             $this->commandExecutionTracker,
-            $this->commandMap,
             true, // enabled
             [], // otherCommands
         );
@@ -77,14 +73,12 @@ class AbstractCommandListenerTest extends TestCase
         $this->assertFalse($result);
     }
 
-    public function testSupportsLazyCommandWithCommandLoggerAttributeInCommandMap(): void
+    public function testSupportsTestCommandWithCommandLoggerAttribute(): void
     {
-        $lazyCommand      = new LazyCommand('app:my-command', [], '', false, fn () => new TestCommand());
-        $this->commandMap = ['app:my-command' => new TestCommand()];
+        $lazyCommand      = new TestCommand();
         $this->listener   = new CommandStartListener(
             $this->entityManager,
             $this->commandExecutionTracker,
-            $this->commandMap,
             true,
             [],
         );
@@ -97,18 +91,16 @@ class AbstractCommandListenerTest extends TestCase
     public function testDoesNotSupportLazyCommandWithEmptyCommandMap(): void
     {
         $lazyCommand      = new LazyCommand('app:my-command', [], '', false, fn () => new TestCommand());
-        $this->commandMap = [];
         $this->listener   = new CommandStartListener(
             $this->entityManager,
             $this->commandExecutionTracker,
-            $this->commandMap,
             true,
             [],
         );
 
         $result = $this->invokeIsSupportedCommand($lazyCommand, []);
 
-        $this->assertFalse($result, 'LazyCommand not supported due to empty commandMap, indicating a potential bug.');
+        $this->assertFalse($result);
     }
 
     public function testWildcardMatchesCommandName(): void

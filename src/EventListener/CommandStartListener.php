@@ -21,7 +21,6 @@ class CommandStartListener extends AbstractCommandListener
     public function __construct(
         EntityManagerInterface $entityManager,
         CommandExecutionTracker $commandExecutionTracker,
-        iterable $commandMap,
         bool $enabled,
         array $otherCommands = [],
     ) {
@@ -29,8 +28,6 @@ class CommandStartListener extends AbstractCommandListener
         $this->commandExecutionTracker = $commandExecutionTracker;
         $this->enabled                 = $enabled;
         $this->otherCommands           = $otherCommands;
-
-        parent::__construct($commandMap);
     }
 
     public function onConsoleCommand(ConsoleCommandEvent $event): void

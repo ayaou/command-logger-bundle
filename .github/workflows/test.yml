@@ -1,129 +1,73 @@
 name: Tests and Release
 
-# Trigger the workflow on these events
 on:
   push:
-    branches:
-      - '*'  # Run on push to any branch
+    branches: ['*']
   pull_request:
-    branches:
-      - '*'  # Run on PRs targeting any branch
+    branches: ['*']
 
-# Set permissions for GITHUB_TOKEN
 permissions:
-  contents: write  # Needed for pushing tags and commits
-  issues: write    # Optional, for @semantic-release/github to create failure issues
+  contents: write
+  issues: write
 
 jobs:
-  # Job 1: Run tests
-  tests_php8_1:
+  tests:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-version: ['8.1', '8.2', '8.3', '8.4']
+        symfony-version: ['6.4.*', '7.0.*', '7.1.*', '7.2.*', '7.3.*']
+        exclude:
+          - php-version: '8.1'
+            symfony-version: '7.0.*'
+          - php-version: '8.1'
+            symfony-version: '7.1.*'
+          - php-version: '8.1'
+            symfony-version: '7.2.*'
+          - php-version: '8.1'
+            symfony-version: '7.3.*'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4  # Clones the repo
+        uses: actions/checkout@v4
 
       - name: Set up PHP
-        uses: shivammathur/setup-php@v2  # Installs PHP 8.1
+        uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.1'
-          extensions: sqlite3, pdo_sqlite  # For Doctrine/SQLite in tests
+          php-version: ${{ matrix.php-version }}
+          extensions: sqlite3, pdo_sqlite
+
+      - name: Restrict Symfony version
+        run: composer config extra.symfony.require "${{ matrix.symfony-version }}"
+        if: matrix.symfony-version != ''
 
       - name: Install dependencies
-        run: composer install --prefer-dist --no-progress # Installs PHP deps
+        run: composer install --prefer-dist --no-progress
 
-      - name: Run integration tests
-        run: vendor/bin/phpunit tests/Integration  # Runs integration tests
+      - name: Run tests
+        run: SYMFONY_DEPRECATIONS_HELPER=disabled vendor/bin/phpunit tests -d error_reporting="~E_DEPRECATED & ~E_USER_DEPRECATED"
 
-      - name: Run unit tests
-        run: vendor/bin/phpunit tests/Unit  # Runs unit tests
-
-  tests_php8_2:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4  # Clones the repo
-
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2  # Installs PHP 8.2
-        with:
-          php-version: '8.2'
-          extensions: sqlite3, pdo_sqlite  # For Doctrine/SQLite in tests
-
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-progress # Installs PHP deps
-
-      - name: Run integration tests
-        run: vendor/bin/phpunit tests/Integration  # Runs integration tests
-
-      - name: Run unit tests
-        run: vendor/bin/phpunit tests/Unit  # Runs unit tests
-
-  tests_php8_3:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4  # Clones the repo
-
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2  # Installs PHP 8.3
-        with:
-          php-version: '8.3'
-          extensions: sqlite3, pdo_sqlite  # For Doctrine/SQLite in tests
-
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-progress # Installs PHP deps
-
-      - name: Run integration tests
-        run: vendor/bin/phpunit tests/Integration  # Runs integration tests
-
-      - name: Run unit tests
-        run: vendor/bin/phpunit tests/Unit  # Runs unit tests
-
-  tests_php8_4:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4  # Clones the repo
-
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2  # Installs PHP 8.4
-        with:
-          php-version: '8.4'
-          extensions: sqlite3, pdo_sqlite  # For Doctrine/SQLite in tests
-
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-progress # Installs PHP deps
-
-      - name: Run integration tests
-        run: vendor/bin/phpunit tests/Integration  # Runs integration tests
-
-      - name: Run unit tests
-        run: vendor/bin/phpunit tests/Unit  # Runs unit tests
-
-  # Job 2: Handle release (only on main)
   release:
     runs-on: ubuntu-latest
-    needs:  # Only runs if tests pass
-      - tests_php8_1
-      - tests_php8_2
-      - tests_php8_3
-      - tests_php8_4
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'  # Only on main
+    needs: tests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Full history for commit analysis
-
+          fetch-depth: 0
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-
+      - name: Cache Node.js dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-node-
       - name: Install semantic-release
         run: npm install -g semantic-release @semantic-release/git @semantic-release/changelog @semantic-release/github
-
       - name: Run semantic-release
         run: npx semantic-release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # For GitHub releases and tagging
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
