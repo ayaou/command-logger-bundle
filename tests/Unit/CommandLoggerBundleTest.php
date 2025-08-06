@@ -2,14 +2,14 @@
 
 namespace Ayaou\CommandLoggerBundle\Tests\Unit;
 
-use Ayaou\CommandLoggerBundle\CommandLoggerBundle;
+use Ayaou\CommandLoggerBundle\AyaouCommandLoggerBundle;
 use PHPUnit\Framework\TestCase;
 
-class CommandLoggerBundleTest extends TestCase
+class AyaouCommandLoggerBundleTest extends TestCase
 {
     public function testGetPath(): void
     {
-        $bundle = new CommandLoggerBundle();
+        $bundle = new AyaouCommandLoggerBundle();
         $this->assertTrue(is_dir($bundle->getPath()));
     }
 }

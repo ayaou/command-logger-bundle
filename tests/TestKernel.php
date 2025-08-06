@@ -2,7 +2,7 @@
 
 namespace Ayaou\CommandLoggerBundle\Tests;
 
-use Ayaou\CommandLoggerBundle\CommandLoggerBundle;
+use Ayaou\CommandLoggerBundle\AyaouCommandLoggerBundle;
 use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
 use Doctrine\ORM\Mapping\Driver\AttributeDriver;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
@@ -16,7 +16,7 @@ class TestKernel extends Kernel
         return [
             new FrameworkBundle(),
             new DoctrineBundle(),
-            new CommandLoggerBundle(),
+            new AyaouCommandLoggerBundle(),
         ];
     }
 
