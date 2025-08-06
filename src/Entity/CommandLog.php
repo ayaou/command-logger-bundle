@@ -10,6 +10,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(fields: ['commandName'])]
 #[ORM\Index(fields: ['startTime'])]
 #[ORM\Index(fields: ['commandName', 'startTime'])]
+#[ORM\Index(fields: ['exitCode'])]
 class CommandLog
 {
     #[ORM\Id]
@@ -50,6 +51,10 @@ class CommandLog
 
     public function setCommandName(string $commandName): self
     {
+        if (strlen($commandName) > 255) {
+            throw new \InvalidArgumentException('Command name cannot exceed 255 characters');
+        }
+        
         $this->commandName = $commandName;
 
         return $this;
@@ -122,8 +127,32 @@ class CommandLog
 
     public function setExecutionToken(string $executionToken): self
     {
+        if (strlen($executionToken) !== 36) {
+            throw new \InvalidArgumentException('Execution token must be exactly 36 characters (UUID format)');
+        }
+        
         $this->executionToken = $executionToken;
 
         return $this;
+    }
+
+    /**
+     * Calculate the execution time in seconds.
+     */
+    public function getExecutionTimeInSeconds(): ?float
+    {
+        if (!$this->startTime || !$this->endTime) {
+            return null;
+        }
+
+        return (float) $this->endTime->getTimestamp() - $this->startTime->getTimestamp();
+    }
+
+    /**
+     * Check if the command execution was successful.
+     */
+    public function isSuccessful(): bool
+    {
+        return $this->exitCode === 0;
     }
 }

@@ -42,17 +42,22 @@ class CommandTerminateListener extends AbstractCommandListener
             return;
         }
 
-        $log = $this->entityManager->getRepository(CommandLog::class)
-            ->findOneBy(['executionToken' => $executionToken]);
+        try {
+            $log = $this->entityManager->getRepository(CommandLog::class)
+                ->findOneBy(['executionToken' => $executionToken]);
 
-        if ($log) {
-            $log->setEndTime(new \DateTimeImmutable())
-                ->setExitCode($event->getExitCode());
+            if ($log) {
+                $log->setEndTime(new \DateTimeImmutable())
+                    ->setExitCode($event->getExitCode());
 
-            $this->entityManager->persist($log);
-            $this->entityManager->flush();
+                $this->entityManager->persist($log);
+                $this->entityManager->flush();
+            }
+        } catch (\Throwable $e) {
+            // Silently fail - we don't want logging issues to break the command execution
+        } finally {
+            // Always clean up the token to prevent memory leaks
+            $this->commandExecutionTracker->clearToken($command);
         }
-
-        $this->commandExecutionTracker->clearToken($command);
     }
 }

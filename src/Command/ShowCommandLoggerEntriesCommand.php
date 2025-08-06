@@ -76,34 +76,50 @@ class ShowCommandLoggerEntriesCommand extends Command
             return Command::SUCCESS;
         }
 
-        $limit       = (int) ($input->getOption('limit') ?? 10);
+        $limit = (int) ($input->getOption('limit') ?? 10);
+        
+        // Validate limit parameter
+        if ($limit <= 0) {
+            $io->error('Limit must be a positive integer.');
+            return Command::INVALID;
+        }
+        
+        if ($limit > 1000) {
+            $io->warning('Limit is very large (> 1000). This may cause performance issues.');
+        }
+        
         $commandName = $input->getArgument('name');
         $offset      = 0;
 
         while (true) {
-            $qb = $this->commandLogRepository->createQueryBuilder('cl');
+            try {
+                $qb = $this->commandLogRepository->createQueryBuilder('cl');
 
-            if (null !== $commandName) {
-                $qb->andWhere('cl.commandName = :commandName')
-                    ->setParameter('commandName', $commandName);
+                if (null !== $commandName) {
+                    $qb->andWhere('cl.commandName = :commandName')
+                        ->setParameter('commandName', $commandName);
+                }
+
+                if ($errorFlag) {
+                    $qb->andWhere('cl.exitCode != :exitCode')
+                        ->setParameter('exitCode', 0);
+                } elseif ($successFlag) {
+                    $qb->andWhere('cl.exitCode = :exitCode')
+                        ->setParameter('exitCode', 0);
+                } elseif (null !== $exitCode) {
+                    $qb->andWhere('cl.exitCode = :exitCode')
+                        ->setParameter('exitCode', $exitCode);
+                }
+
+                $entries = $qb->addOrderBy('cl.startTime', 'DESC')
+                    ->setMaxResults($limit)
+                    ->setFirstResult($offset)
+                    ->getQuery()
+                    ->getResult();
+            } catch (\Throwable $e) {
+                $io->error(sprintf('Database error: %s', $e->getMessage()));
+                return Command::FAILURE;
             }
-
-            if ($errorFlag) {
-                $qb->andWhere('cl.exitCode != :exitCode')
-                    ->setParameter('exitCode', 0);
-            } elseif ($successFlag) {
-                $qb->andWhere('cl.exitCode = :exitCode')
-                    ->setParameter('exitCode', 0);
-            } elseif (null !== $exitCode) {
-                $qb->andWhere('cl.exitCode = :exitCode')
-                    ->setParameter('exitCode', $exitCode);
-            }
-
-            $entries = $qb->addOrderBy('cl.startTime', 'DESC')
-                ->setMaxResults($limit)
-                ->setFirstResult($offset)
-                ->getQuery()
-                ->getResult();
 
             if (empty($entries)) {
                 if (0 === $offset) {

@@ -42,16 +42,22 @@ class CommandErrorListener extends AbstractCommandListener
             return;
         }
 
-        $log = $this->entityManager->getRepository(CommandLog::class)
-            ->findOneBy(['executionToken' => $executionToken]);
+        try {
+            $log = $this->entityManager->getRepository(CommandLog::class)
+                ->findOneBy(['executionToken' => $executionToken]);
 
-        if ($log) {
-            $errorDetails = $this->getErrorDetails($event->getError());
-            $log->setErrorMessage(implode("\n\n\n", $errorDetails));
+            if ($log) {
+                $errorDetails = $this->getErrorDetails($event->getError());
+                $errorMessage = implode("\n\n\n", $errorDetails);
+                $log->setErrorMessage($this->limitErrorMessageSize($errorMessage));
 
-            $this->entityManager->persist($log);
-            $this->entityManager->flush();
+                $this->entityManager->persist($log);
+                $this->entityManager->flush();
+            }
+        } catch (\Throwable $e) {
+            // Silently fail - we don't want logging issues to break the command execution
         }
+    }
     }
 
     private function getErrorDetails(\Throwable $error): array
@@ -66,5 +72,14 @@ class CommandErrorListener extends AbstractCommandListener
         }
 
         return $errorDetails;
+    }
+
+    private function limitErrorMessageSize(string $errorMessage, int $maxLength = 65000): string
+    {
+        if (strlen($errorMessage) <= $maxLength) {
+            return $errorMessage;
+        }
+
+        return substr($errorMessage, 0, $maxLength - 50).'... [Error message truncated due to size]';
     }
 }

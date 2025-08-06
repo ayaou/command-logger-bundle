@@ -4,7 +4,7 @@ namespace Ayaou\CommandLoggerBundle;
 
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 
-class CommandLoggerBundle extends Bundle
+class AyaouCommandLoggerBundle extends Bundle
 {
     public function getPath(): string
     {

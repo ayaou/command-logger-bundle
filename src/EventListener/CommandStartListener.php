@@ -42,18 +42,42 @@ class CommandStartListener extends AbstractCommandListener
             return;
         }
 
-        $input          = $event->getInput();
-        $log            = new CommandLog();
-        $executionToken = Uuid::v4()->toRfc4122();
+        try {
+            $input          = $event->getInput();
+            $log            = new CommandLog();
+            $executionToken = Uuid::v4()->toRfc4122();
 
-        $this->commandExecutionTracker->setToken($command, $executionToken);
+            $this->commandExecutionTracker->setToken($command, $executionToken);
 
-        $log->setCommandName($commandName)
-            ->setArguments($input->getArguments() + $input->getOptions())
-            ->setStartTime(new \DateTimeImmutable())
-            ->setExecutionToken($executionToken);
+            $log->setCommandName($commandName)
+                ->setArguments($this->sanitizeArguments($input->getArguments() + $input->getOptions()))
+                ->setStartTime(new \DateTimeImmutable())
+                ->setExecutionToken($executionToken);
 
-        $this->entityManager->persist($log);
-        $this->entityManager->flush();
+            $this->entityManager->persist($log);
+            $this->entityManager->flush();
+        } catch (\Throwable $e) {
+            // Silently fail - we don't want logging issues to break the command execution
+            // In a real application, you might want to log this to a separate error log
+        }
+    }
+
+    private function sanitizeArguments(array $arguments): array
+    {
+        $sensitiveKeys = ['password', 'token', 'secret', 'key', 'auth'];
+        
+        foreach ($arguments as $key => $value) {
+            if (is_string($key)) {
+                $lowerKey = strtolower($key);
+                foreach ($sensitiveKeys as $sensitiveKey) {
+                    if (str_contains($lowerKey, $sensitiveKey)) {
+                        $arguments[$key] = '[REDACTED]';
+                        break;
+                    }
+                }
+            }
+        }
+        
+        return $arguments;
     }
 }

@@ -52,7 +52,10 @@ class AbstractCommandListener
         // Replace '*' in the pattern with '.*' for regex matching.
         $regex = '/^'.str_replace('\*', '.*', $escapedPattern).'$/';
 
-        // Perform a regex match.
-        return (bool) preg_match($regex, $name);
+        // Perform a regex match with error handling.
+        $result = @preg_match($regex, $name);
+        
+        // Return false if regex fails or doesn't match
+        return $result === 1;
     }
 }

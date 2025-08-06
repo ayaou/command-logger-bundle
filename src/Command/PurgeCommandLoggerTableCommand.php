@@ -52,12 +52,29 @@ class PurgeCommandLoggerTableCommand extends Command
         }
 
         $thresholdDays = (int) $threshold;
-        $cutoffDate    = new \DateTimeImmutable("-$thresholdDays days");
+        
+        // Add safety check for very small thresholds
+        if ($thresholdDays < 1) {
+            $io->error('The threshold must be at least 1 day.');
+            return Command::INVALID;
+        }
+        
+        // Add safety check for very large thresholds
+        if ($thresholdDays > 3650) { // 10 years
+            $io->warning('The threshold is very large (> 10 years). Continuing...');
+        }
 
-        // Purge logs older than the cutoff date
-        $deletedCount = $this->commandLogRepository->purgeLogsOlderThan($cutoffDate);
+        $cutoffDate = new \DateTimeImmutable("-$thresholdDays days");
 
-        $io->success(sprintf('Purged %d log entries older than %d days.', $deletedCount, $thresholdDays));
+        try {
+            // Purge logs older than the cutoff date
+            $deletedCount = $this->commandLogRepository->purgeLogsOlderThan($cutoffDate);
+            
+            $io->success(sprintf('Purged %d log entries older than %d days.', $deletedCount, $thresholdDays));
+        } catch (\Throwable $e) {
+            $io->error(sprintf('Failed to purge logs: %s', $e->getMessage()));
+            return Command::FAILURE;
+        }
 
         return Command::SUCCESS;
     }

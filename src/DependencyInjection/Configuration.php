@@ -24,10 +24,10 @@ class Configuration implements ConfigurationInterface
                     ->info('Number of days to keep logs before purging')
                 ->end()
                 ->arrayNode('commands')
+                    ->defaultValue([])
                     ->scalarPrototype()
                         ->info('List of commands to log. Example: ["app:example", "app:another-example"]')
                     ->end()
-                ->defaultValue([])
             ->end();
 
         return $treeBuilder;
