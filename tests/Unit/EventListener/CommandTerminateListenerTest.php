@@ -1,9 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
+/*
+ * This file is part of the command logger bundle.
+ *
+ * (c) Mohamed AYAOU <github.com/ayaou>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Ayaou\CommandLoggerBundle\Tests\Unit\EventListener;
 
 use Ayaou\CommandLoggerBundle\Entity\CommandLog;
-use Ayaou\CommandLoggerBundle\EventListener\CommandTerminateListener;
+use Ayaou\CommandLoggerBundle\EventListener\CommandLogger\CommandTerminateListener;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
@@ -35,12 +46,12 @@ class CommandTerminateListenerTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->entityManager           = $this->createMock(EntityManagerInterface::class);
+        $this->entityManager = $this->createMock(EntityManagerInterface::class);
         $this->commandExecutionTracker = $this->createMock(CommandExecutionTracker::class);
-        $this->command                 = new TestCommand();
-        $this->input                   = $this->createMock(InputInterface::class);
-        $this->output                  = $this->createMock(BufferedOutput::class);
-        $this->repository              = $this->createMock(EntityRepository::class);
+        $this->command = new TestCommand();
+        $this->input = $this->createMock(InputInterface::class);
+        $this->output = $this->createMock(BufferedOutput::class);
+        $this->repository = $this->createMock(EntityRepository::class);
 
         $this->event = new ConsoleTerminateEvent($this->command, $this->input, $this->output, 0);
 

@@ -1,9 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
+/*
+ * This file is part of the command logger bundle.
+ *
+ * (c) Mohamed AYAOU <github.com/ayaou>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Ayaou\CommandLoggerBundle\Tests\Unit\EventListener;
 
 use Ayaou\CommandLoggerBundle\Entity\CommandLog;
-use Ayaou\CommandLoggerBundle\EventListener\CommandStartListener;
+use Ayaou\CommandLoggerBundle\EventListener\CommandLogger\CommandStartListener;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -32,12 +43,12 @@ class CommandStartListenerTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->entityManager           = $this->createMock(EntityManagerInterface::class);
+        $this->entityManager = $this->createMock(EntityManagerInterface::class);
         $this->commandExecutionTracker = $this->createMock(CommandExecutionTracker::class);
-        $this->command                 = new TestCommand();
-        $this->input                   = $this->createMock(InputInterface::class);
-        $this->output                  = $this->createMock(OutputInterface::class);
-        $this->event                   = new ConsoleCommandEvent($this->command, $this->input, $this->output);
+        $this->command = new TestCommand();
+        $this->input = $this->createMock(InputInterface::class);
+        $this->output = $this->createMock(OutputInterface::class);
+        $this->event = new ConsoleCommandEvent($this->command, $this->input, $this->output);
 
         $this->listener = new CommandStartListener(
             $this->entityManager,
@@ -58,7 +69,7 @@ class CommandStartListenerTest extends TestCase
 
     public function testDoesNothingWhenUsedWithNonConfiguredCommand(): void
     {
-        $command     = new TestCommandWithoutAttribute();
+        $command = new TestCommandWithoutAttribute();
         $this->event = new ConsoleCommandEvent($command, $this->input, $this->output);
 
         $listener = new CommandStartListener($this->entityManager, $this->commandExecutionTracker, true, []);
@@ -70,7 +81,7 @@ class CommandStartListenerTest extends TestCase
 
     public function testDoesNothingWhenUsedWithConfiguredCommand(): void
     {
-        $command     = new TestCommandWithoutAttribute();
+        $command = new TestCommandWithoutAttribute();
         $this->event = new ConsoleCommandEvent($command, $this->input, $this->output);
 
         $listener = new CommandStartListener($this->entityManager, $this->commandExecutionTracker, true, ['app:command-without-attribute']);

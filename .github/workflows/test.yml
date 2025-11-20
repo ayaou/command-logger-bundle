@@ -2,9 +2,9 @@ name: Tests and Release
 
 on:
   push:
-    branches: ['*']
+    branches: [ '*' ]
   pull_request:
-    branches: ['*']
+    branches: [ '*' ]
 
 permissions:
   contents: write
@@ -14,18 +14,21 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        php-version: ['8.1', '8.2', '8.3', '8.4']
-        symfony-version: ['6.4.*', '7.0.*', '7.1.*', '7.2.*', '7.3.*']
+        symfony-version: [ '6.4.*', '7.4.*', '8.0.*' ]
+        php-version: [ '8.1', '8.2', '8.3', '8.4' , '8.5' ]
         exclude:
+          # Symfony 7.x requires PHP 8.2+
           - php-version: '8.1'
-            symfony-version: '7.0.*'
+            symfony-version: '7.4.*'
+          # Symfony 8.x requires PHP 8.4+
           - php-version: '8.1'
-            symfony-version: '7.1.*'
-          - php-version: '8.1'
-            symfony-version: '7.2.*'
-          - php-version: '8.1'
-            symfony-version: '7.3.*'
+            symfony-version: '8.0.*'
+          - php-version: '8.2'
+            symfony-version: '8.0.*'
+          - php-version: '8.3'
+            symfony-version: '8.0.*'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -35,13 +38,26 @@ jobs:
         with:
           php-version: ${{ matrix.php-version }}
           extensions: sqlite3, pdo_sqlite
+          # Ensure Composer v2 is used
+          tools: composer:v2
 
-      - name: Restrict Symfony version
-        run: composer config extra.symfony.require "${{ matrix.symfony-version }}"
-        if: matrix.symfony-version != ''
+      - name: Install Dependencies
+        run: |
+          # 1. Allow flex to run as a plugin globally
+          composer global config --no-plugins allow-plugins.symfony/flex true
+          
+          # 2. Install flex globally (so it works without being in your composer.json)
+          composer global require --no-progress --no-scripts --no-plugins symfony/flex
 
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-progress
+          # 3. Update dependencies with the restriction applied via ENV
+          composer update --prefer-dist --no-progress --prefer-stable
+        env:
+          # Flex reads this environment variable to enforce versions
+          SYMFONY_REQUIRE: ${{ matrix.symfony-version }}
+
+      # Optional: Verify the installed version in logs
+      - name: Check installed Symfony version
+        run: composer show symfony/http-kernel | grep versions
 
       - name: Run tests
         run: SYMFONY_DEPRECATIONS_HELPER=disabled vendor/bin/phpunit tests -d error_reporting="~E_DEPRECATED & ~E_USER_DEPRECATED"

@@ -8,24 +8,24 @@ services:
     resource: '../src/*'
     exclude: '../src/{Entity}'
 
-  Ayaou\CommandLoggerBundle\EventListener\CommandStartListener:
-    class: Ayaou\CommandLoggerBundle\EventListener\CommandStartListener
+  Ayaou\CommandLoggerBundle\EventListener\CommandLogger\CommandStartListener:
+    class: Ayaou\CommandLoggerBundle\EventListener\CommandLogger\CommandStartListener
     arguments:
       $enabled: '%command_logger.enabled%'
       $otherCommands: '%command_logger.commands%'
     tags:
       - { name: kernel.event_listener, event: console.command, method: onConsoleCommand }
 
-  Ayaou\CommandLoggerBundle\EventListener\CommandTerminateListener:
-    class: Ayaou\CommandLoggerBundle\EventListener\CommandTerminateListener
+  Ayaou\CommandLoggerBundle\EventListener\CommandLogger\CommandTerminateListener:
+    class: Ayaou\CommandLoggerBundle\EventListener\CommandLogger\CommandTerminateListener
     arguments:
       $enabled: '%command_logger.enabled%'
       $otherCommands: '%command_logger.commands%'
     tags:
       - { name: kernel.event_listener, event: console.terminate, method: onConsoleTerminate }
 
-  Ayaou\CommandLoggerBundle\EventListener\CommandErrorListener:
-    class: Ayaou\CommandLoggerBundle\EventListener\CommandErrorListener
+  Ayaou\CommandLoggerBundle\EventListener\CommandLogger\CommandErrorListener:
+    class: Ayaou\CommandLoggerBundle\EventListener\CommandLogger\CommandErrorListener
     arguments:
       $enabled: '%command_logger.enabled%'
       $otherCommands: '%command_logger.commands%'

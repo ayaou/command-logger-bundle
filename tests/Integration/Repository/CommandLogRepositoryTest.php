@@ -1,5 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
+/*
+ * This file is part of the command logger bundle.
+ *
+ * (c) Mohamed AYAOU <github.com/ayaou>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Ayaou\CommandLoggerBundle\Tests\Integration\Repository;
 
 use Ayaou\CommandLoggerBundle\Entity\CommandLog;
@@ -16,8 +27,8 @@ class CommandLogRepositoryTest extends AppKernelTestCase
         $this->repository = self::getContainer()->get(CommandLogRepository::class);
 
         $entityManager = self::getContainer()->get('doctrine.orm.entity_manager');
-        $schemaTool    = new \Doctrine\ORM\Tools\SchemaTool($entityManager);
-        $metadata      = $entityManager->getClassMetadata(CommandLog::class);
+        $schemaTool = new \Doctrine\ORM\Tools\SchemaTool($entityManager);
+        $metadata = $entityManager->getClassMetadata(CommandLog::class);
         $schemaTool->createSchema([$metadata]);
     }
 
@@ -40,7 +51,7 @@ class CommandLogRepositoryTest extends AppKernelTestCase
         $entityManager->flush();
 
         // Purge logs older than 30 days
-        $cutoffDate   = new \DateTimeImmutable('-30 days');
+        $cutoffDate = new \DateTimeImmutable('-30 days');
         $deletedCount = $this->repository->purgeLogsOlderThan($cutoffDate);
 
         $this->assertEquals(1, $deletedCount);
@@ -65,7 +76,7 @@ class CommandLogRepositoryTest extends AppKernelTestCase
         $entityManager->flush();
 
         // Purge logs older than 30 days
-        $cutoffDate   = new \DateTimeImmutable('-30 days');
+        $cutoffDate = new \DateTimeImmutable('-30 days');
         $deletedCount = $this->repository->purgeLogsOlderThan($cutoffDate);
 
         $this->assertEquals(0, $deletedCount);

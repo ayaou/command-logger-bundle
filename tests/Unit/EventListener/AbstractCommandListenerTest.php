@@ -1,8 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
+/*
+ * This file is part of the command logger bundle.
+ *
+ * (c) Mohamed AYAOU <github.com/ayaou>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Ayaou\CommandLoggerBundle\Tests\Unit\EventListener;
 
-use Ayaou\CommandLoggerBundle\EventListener\CommandStartListener;
+use Ayaou\CommandLoggerBundle\EventListener\CommandLogger\CommandStartListener;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\Exception;
@@ -23,9 +34,9 @@ class AbstractCommandListenerTest extends TestCase
      */
     protected function setUp(): void
     {
-        $this->entityManager           = $this->createMock(EntityManagerInterface::class);
+        $this->entityManager = $this->createMock(EntityManagerInterface::class);
         $this->commandExecutionTracker = $this->createMock(CommandExecutionTracker::class);
-        $this->listener                = new CommandStartListener(
+        $this->listener = new CommandStartListener(
             $this->entityManager,
             $this->commandExecutionTracker,
             true, // enabled
@@ -36,7 +47,7 @@ class AbstractCommandListenerTest extends TestCase
     public function testSupportsCommandWithExactConfigMatch(): void
     {
         $command = new TestCommand();
-        $result  = $this->invokeIsSupportedCommand($command, ['app:my-command']);
+        $result = $this->invokeIsSupportedCommand($command, ['app:my-command']);
 
         $this->assertTrue($result);
     }
@@ -44,7 +55,7 @@ class AbstractCommandListenerTest extends TestCase
     public function testSupportsCommandWithWildcardConfigMatch(): void
     {
         $command = new TestCommand();
-        $result  = $this->invokeIsSupportedCommand($command, ['app:*']);
+        $result = $this->invokeIsSupportedCommand($command, ['app:*']);
 
         $this->assertTrue($result);
     }
@@ -52,7 +63,7 @@ class AbstractCommandListenerTest extends TestCase
     public function testSupportsCommandWithCommandLoggerAttribute(): void
     {
         $command = new TestCommand();
-        $result  = $this->invokeIsSupportedCommand($command, []);
+        $result = $this->invokeIsSupportedCommand($command, []);
 
         $this->assertTrue($result);
     }
@@ -60,7 +71,7 @@ class AbstractCommandListenerTest extends TestCase
     public function testDoesNotSupportCommandWithoutCommandLoggerAttribute(): void
     {
         $command = new TestCommandWithoutAttribute();
-        $result  = $this->invokeIsSupportedCommand($command, []);
+        $result = $this->invokeIsSupportedCommand($command, []);
 
         $this->assertFalse($result);
     }
@@ -68,15 +79,15 @@ class AbstractCommandListenerTest extends TestCase
     public function testDoesNotSupportCommandWithNoName(): void
     {
         $command = new TestCommandWithoutName();
-        $result  = $this->invokeIsSupportedCommand($command, ['app:my-command-without-name']);
+        $result = $this->invokeIsSupportedCommand($command, ['app:my-command-without-name']);
 
         $this->assertFalse($result);
     }
 
     public function testSupportsTestCommandWithCommandLoggerAttribute(): void
     {
-        $lazyCommand      = new TestCommand();
-        $this->listener   = new CommandStartListener(
+        $lazyCommand = new TestCommand();
+        $this->listener = new CommandStartListener(
             $this->entityManager,
             $this->commandExecutionTracker,
             true,
@@ -90,8 +101,8 @@ class AbstractCommandListenerTest extends TestCase
 
     public function testDoesNotSupportLazyCommandWithEmptyCommandMap(): void
     {
-        $lazyCommand      = new LazyCommand('app:my-command', [], '', false, fn () => new TestCommand());
-        $this->listener   = new CommandStartListener(
+        $lazyCommand = new LazyCommand('app:my-command', [], '', false, fn () => new TestCommand());
+        $this->listener = new CommandStartListener(
             $this->entityManager,
             $this->commandExecutionTracker,
             true,
@@ -135,7 +146,7 @@ class AbstractCommandListenerTest extends TestCase
     private function invokeMethod(object $object, string $methodName, array $parameters = [])
     {
         $reflection = new \ReflectionClass($object);
-        $method     = $reflection->getMethod($methodName);
+        $method = $reflection->getMethod($methodName);
 
         return $method->invokeArgs($object, $parameters);
     }

@@ -1,5 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
+/*
+ * This file is part of the command logger bundle.
+ *
+ * (c) Mohamed AYAOU <github.com/ayaou>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Ayaou\CommandLoggerBundle\Tests\Integration\Command;
 
 use Ayaou\CommandLoggerBundle\Entity\CommandLog;
@@ -26,11 +37,11 @@ class ShowCommandLoggerEntriesCommandTest extends AppKernelTestCase
 
         // Get the entity manager and repository
         $this->entityManager = self::$kernel->getContainer()->get('doctrine.orm.entity_manager');
-        $this->repository    = $this->entityManager->getRepository(CommandLog::class);
+        $this->repository = $this->entityManager->getRepository(CommandLog::class);
 
         // Create the database schema
         $schemaTool = new SchemaTool($this->entityManager);
-        $metadata   = $this->entityManager->getClassMetadata(CommandLog::class);
+        $metadata = $this->entityManager->getClassMetadata(CommandLog::class);
         $schemaTool->createSchema([$metadata]);
 
         // Find the command by name
@@ -41,7 +52,7 @@ class ShowCommandLoggerEntriesCommandTest extends AppKernelTestCase
     {
         // Drop the schema to reset the in-memory database
         $schemaTool = new SchemaTool($this->entityManager);
-        $metadata   = $this->entityManager->getClassMetadata(CommandLog::class);
+        $metadata = $this->entityManager->getClassMetadata(CommandLog::class);
         $schemaTool->dropSchema([$metadata]);
 
         $this->entityManager->close();
@@ -278,7 +289,7 @@ class ShowCommandLoggerEntriesCommandTest extends AppKernelTestCase
 
         // Set the ID explicitly to match expected values
         $reflection = new \ReflectionClass($entry);
-        $property   = $reflection->getProperty('id');
+        $property = $reflection->getProperty('id');
         $property->setValue($entry, $id);
 
         $this->entityManager->persist($entry);
