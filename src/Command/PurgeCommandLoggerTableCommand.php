@@ -1,5 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
+/*
+ * This file is part of the command logger bundle.
+ *
+ * (c) Mohamed AYAOU <github.com/ayaou>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Ayaou\CommandLoggerBundle\Command;
 
 use Ayaou\CommandLoggerBundle\Repository\CommandLogRepository;
@@ -23,7 +34,7 @@ class PurgeCommandLoggerTableCommand extends Command
     public function __construct(int $defaultPurgeThreshold, CommandLogRepository $commandLogRepository)
     {
         $this->defaultPurgeThreshold = $defaultPurgeThreshold;
-        $this->commandLogRepository  = $commandLogRepository;
+        $this->commandLogRepository = $commandLogRepository;
         parent::__construct();
     }
 
@@ -52,7 +63,7 @@ class PurgeCommandLoggerTableCommand extends Command
         }
 
         $thresholdDays = (int) $threshold;
-        $cutoffDate    = new \DateTimeImmutable("-$thresholdDays days");
+        $cutoffDate = new \DateTimeImmutable("-$thresholdDays days");
 
         // Purge logs older than the cutoff date
         $deletedCount = $this->commandLogRepository->purgeLogsOlderThan($cutoffDate);

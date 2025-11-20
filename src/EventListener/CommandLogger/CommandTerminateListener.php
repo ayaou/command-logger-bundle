@@ -1,13 +1,24 @@
 <?php
 
-namespace Ayaou\CommandLoggerBundle\EventListener;
+declare(strict_types=1);
+
+/*
+ * This file is part of the command logger bundle.
+ *
+ * (c) Mohamed AYAOU <github.com/ayaou>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace Ayaou\CommandLoggerBundle\EventListener\CommandLogger;
 
 use Ayaou\CommandLoggerBundle\Entity\CommandLog;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\Console\Event\ConsoleErrorEvent;
+use Symfony\Component\Console\Event\ConsoleTerminateEvent;
 
-class CommandErrorListener extends AbstractCommandListener
+class CommandTerminateListener extends AbstractCommandListener
 {
     private EntityManagerInterface $entityManager;
 
@@ -15,21 +26,27 @@ class CommandErrorListener extends AbstractCommandListener
 
     private bool $enabled;
 
+    /**
+     * @var array<int|string, string>
+     */
     private array $otherCommands;
 
+    /**
+     * @param array<int|string, string> $otherCommands
+     */
     public function __construct(
         EntityManagerInterface $entityManager,
         CommandExecutionTracker $commandExecutionTracker,
         bool $enabled,
         array $otherCommands = [],
     ) {
-        $this->entityManager           = $entityManager;
+        $this->entityManager = $entityManager;
         $this->commandExecutionTracker = $commandExecutionTracker;
-        $this->enabled                 = $enabled;
-        $this->otherCommands           = $otherCommands;
+        $this->enabled = $enabled;
+        $this->otherCommands = $otherCommands;
     }
 
-    public function onConsoleError(ConsoleErrorEvent $event): void
+    public function onConsoleTerminate(ConsoleTerminateEvent $event): void
     {
         $command = $event->getCommand();
 
@@ -46,25 +63,13 @@ class CommandErrorListener extends AbstractCommandListener
             ->findOneBy(['executionToken' => $executionToken]);
 
         if ($log) {
-            $errorDetails = $this->getErrorDetails($event->getError());
-            $log->setErrorMessage(implode("\n\n\n", $errorDetails));
+            $log->setEndTime(new \DateTimeImmutable())
+                ->setExitCode($event->getExitCode());
 
             $this->entityManager->persist($log);
             $this->entityManager->flush();
         }
-    }
 
-    private function getErrorDetails(\Throwable $error): array
-    {
-        $errorDetails = [$error->getMessage()."\n".$error->getTraceAsString()];
-
-        $limit    = 10;
-        $previous = $error->getPrevious();
-        while ($previous && $limit-- > 0) {
-            $errorDetails[] = $previous->getMessage()."\n".$previous->getTraceAsString();
-            $previous       = $previous->getPrevious();
-        }
-
-        return $errorDetails;
+        $this->commandExecutionTracker->clearToken($command);
     }
 }

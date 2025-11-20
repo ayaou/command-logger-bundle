@@ -1,5 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
+/*
+ * This file is part of the command logger bundle.
+ *
+ * (c) Mohamed AYAOU <github.com/ayaou>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Ayaou\CommandLoggerBundle\Tests\Unit\Util;
 
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
@@ -40,7 +51,7 @@ class CommandExecutionTrackerTest extends TestCase
 
     public function testClearRemovesAllTokens(): void
     {
-        $tracker  = new CommandExecutionTracker();
+        $tracker = new CommandExecutionTracker();
         $command1 = $this->createMock(Command::class);
         $command2 = $this->createMock(Command::class);
 

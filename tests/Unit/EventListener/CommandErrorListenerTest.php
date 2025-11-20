@@ -1,9 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
+/*
+ * This file is part of the command logger bundle.
+ *
+ * (c) Mohamed AYAOU <github.com/ayaou>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Ayaou\CommandLoggerBundle\Tests\Unit\EventListener;
 
 use Ayaou\CommandLoggerBundle\Entity\CommandLog;
-use Ayaou\CommandLoggerBundle\EventListener\CommandErrorListener;
+use Ayaou\CommandLoggerBundle\EventListener\CommandLogger\CommandErrorListener;
 use Ayaou\CommandLoggerBundle\Repository\CommandLogRepository;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
 use Doctrine\ORM\EntityManagerInterface;
@@ -35,14 +46,14 @@ class CommandErrorListenerTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->entityManager           = $this->createMock(EntityManagerInterface::class);
+        $this->entityManager = $this->createMock(EntityManagerInterface::class);
         $this->commandExecutionTracker = $this->createMock(CommandExecutionTracker::class);
-        $this->command                 = new TestCommand();
-        $this->input                   = $this->createMock(InputInterface::class);
-        $this->output                  = $this->createMock(OutputInterface::class);
-        $this->repository              = $this->createMock(CommandLogRepository::class); // Changed to EntityRepository
+        $this->command = new TestCommand();
+        $this->input = $this->createMock(InputInterface::class);
+        $this->output = $this->createMock(OutputInterface::class);
+        $this->repository = $this->createMock(CommandLogRepository::class); // Changed to EntityRepository
 
-        $error       = new \Exception('Test error');
+        $error = new \Exception('Test error');
         $this->event = new ConsoleErrorEvent($this->input, $this->output, $error, $this->command);
 
         $this->entityManager->method('getRepository')
@@ -108,9 +119,9 @@ class CommandErrorListenerTest extends TestCase
 
     public function testErrorDetailsAreFormattedCorrectly(): void
     {
-        $error      = new \Exception('Main error', 0, new \Exception('Previous error'));
+        $error = new \Exception('Main error', 0, new \Exception('Previous error'));
         $reflection = new \ReflectionClass($this->listener);
-        $method     = $reflection->getMethod('getErrorDetails');
+        $method = $reflection->getMethod('getErrorDetails');
 
         $result = $method->invoke($this->listener, $error);
 

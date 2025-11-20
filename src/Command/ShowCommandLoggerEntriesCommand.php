@@ -1,7 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
+/*
+ * This file is part of the command logger bundle.
+ *
+ * (c) Mohamed AYAOU <github.com/ayaou>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Ayaou\CommandLoggerBundle\Command;
 
+use Ayaou\CommandLoggerBundle\Entity\CommandLog;
 use Ayaou\CommandLoggerBundle\Repository\CommandLogRepository;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -43,9 +55,34 @@ class ShowCommandLoggerEntriesCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $id = $input->getOption('id');
 
-        $errorFlag   = $input->getOption('error');
+        $errorFlag = $input->getOption('error');
         $successFlag = $input->getOption('success');
-        $exitCode    = null !== $input->getOption('code') ? (int) $input->getOption('code') : null;
+        $exitCode = $input->getOption('code');
+        $limit = $input->hasOption('limit') ? $input->getOption('limit') : 10;
+
+        if (null !== $id) {
+            if (!is_numeric($id)) {
+                throw new InvalidArgumentException('The --id option must be a numeric value.');
+            }
+
+            $id = (int) $id;
+        }
+
+        if (null !== $exitCode) {
+            if (!is_numeric($exitCode)) {
+                throw new InvalidArgumentException('The --code option must be a numeric value.');
+            }
+
+            $exitCode = (int) $exitCode;
+        }
+
+        if (null !== $limit) {
+            if (!is_numeric($limit)) {
+                throw new InvalidArgumentException('The --limit option must be a numeric value.');
+            }
+
+            $limit = (int) $limit;
+        }
 
         if ($errorFlag && $successFlag) {
             throw new InvalidArgumentException('The --error and --success options cannot be used together.');
@@ -76,9 +113,8 @@ class ShowCommandLoggerEntriesCommand extends Command
             return Command::SUCCESS;
         }
 
-        $limit       = (int) ($input->getOption('limit') ?? 10);
         $commandName = $input->getArgument('name');
-        $offset      = 0;
+        $offset = 0;
 
         while (true) {
             $qb = $this->commandLogRepository->createQueryBuilder('cl');
@@ -120,7 +156,7 @@ class ShowCommandLoggerEntriesCommand extends Command
             }
 
             $response = $io->ask('[Press Enter to show more entries, or type anything to exit]', '');
-            if (null !== $response && '' !== trim($response)) {
+            if (is_string($response) && '' !== trim($response)) {
                 break;
             }
 
@@ -130,18 +166,21 @@ class ShowCommandLoggerEntriesCommand extends Command
         return Command::SUCCESS;
     }
 
+    /**
+     * @param array<CommandLog> $entries
+     */
     private function displayEntries(array $entries, SymfonyStyle $io, bool $isSingleEntry = false): void
     {
         if ($isSingleEntry && 1 === count($entries)) {
-            $entry  = $entries[0];
+            $entry = $entries[0];
             $fields = [
-                'ID'              => $entry->getId(),
-                'Command'         => $entry->getCommandName(),
-                'Arguments'       => json_encode($entry->getArguments()),
-                'Start Time'      => $entry->getStartTime()->format('Y-m-d H:i:s'),
-                'End Time'        => $entry->getEndTime() ? $entry->getEndTime()->format('Y-m-d H:i:s') : '-',
-                'Exit Code'       => $entry->getExitCode() ?? '-',
-                'Error Message'   => $entry->getErrorMessage() ?? '-',
+                'ID' => $entry->getId(),
+                'Command' => $entry->getCommandName(),
+                'Arguments' => json_encode($entry->getArguments()),
+                'Start Time' => $entry->getStartTime() ? $entry->getStartTime()->format('Y-m-d H:i:s') : '-',
+                'End Time' => $entry->getEndTime() ? $entry->getEndTime()->format('Y-m-d H:i:s') : '-',
+                'Exit Code' => $entry->getExitCode() ?? '-',
+                'Error Message' => $entry->getErrorMessage() ?? '-',
                 'Execution Token' => $entry->getExecutionToken(),
             ];
 
@@ -157,7 +196,7 @@ class ShowCommandLoggerEntriesCommand extends Command
                     $status,
                     $entry->getId(),
                     $entry->getCommandName(),
-                    $entry->getStartTime()->format('Y-m-d H:i:s'),
+                    $entry->getStartTime() ? $entry->getStartTime()->format('Y-m-d H:i:s') : '-',
                     $entry->getEndTime() ? $entry->getEndTime()->format('Y-m-d H:i:s') : '-',
                     $entry->getExitCode() ?? '-',
                     $entry->getExecutionToken(),
