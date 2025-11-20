@@ -1,12 +1,26 @@
 <?php
 
-namespace Ayaou\CommandLoggerBundle\EventListener;
+declare(strict_types=1);
+
+/*
+ * This file is part of the command logger bundle.
+ *
+ * (c) Mohamed AYAOU <github.com/ayaou>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace Ayaou\CommandLoggerBundle\EventListener\CommandLogger;
 
 use Ayaou\CommandLoggerBundle\Attribute\CommandLogger;
 use Symfony\Component\Console\Command\Command;
 
 class AbstractCommandListener
 {
+    /**
+     * @param array<int|string, string> $otherCommands
+     */
     protected function isSupportedCommand(Command $command, array $otherCommands): bool
     {
         $name = $command->getName();
@@ -29,6 +43,9 @@ class AbstractCommandListener
         return !empty($attributes);
     }
 
+    /**
+     * @param array<string> $otherCommands
+     */
     private function isSupportedOnConfig(string $name, array $otherCommands): bool
     {
         if (in_array($name, $otherCommands, true)) {
