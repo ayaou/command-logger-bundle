@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/ayaou/command-logger-bundle/compare/v1.5.1...v1.6.0) (2025-12-04)
+
+
+### Features
+
+* Support Symfony 8 and Doctrine 3 ([8bb3239](https://github.com/ayaou/command-logger-bundle/commit/8bb323924babb9067106c112a73855aae36355e4)), closes [#22](https://github.com/ayaou/command-logger-bundle/issues/22) [#23](https://github.com/ayaou/command-logger-bundle/issues/23)
+
 ## [1.5.1](https://github.com/ayaou/command-logger-bundle/compare/v1.5.0...v1.5.1) (2025-06-01)
 
 
