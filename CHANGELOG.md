@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/ayaou/command-logger-bundle/compare/v1.6.0...v1.7.0) (2026-09-02)
+
+
+### Features
+
+* **logging:** redact sensitive parameters and bound the error message ([176a59f](https://github.com/ayaou/command-logger-bundle/commit/176a59fa7438c7bd015ba93a4859208a70189d22))
+
 # [1.6.0](https://github.com/ayaou/command-logger-bundle/compare/v1.5.1...v1.6.0) (2025-12-04)
 
 
