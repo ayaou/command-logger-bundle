@@ -41,6 +41,11 @@ class CommandLoggerExtensionTest extends TestCase
 
         $this->assertTrue($this->container->getParameter('command_logger.enabled'));
         $this->assertEquals(100, $this->container->getParameter('command_logger.purge_threshold'));
+        $this->assertEquals(
+            ['password', 'passwd', 'secret', 'token', 'api-key', 'api_key', 'apikey', 'credential', 'auth'],
+            $this->container->getParameter('command_logger.sensitive_parameters'),
+        );
+        $this->assertEquals(65535, $this->container->getParameter('command_logger.max_error_message_length'));
     }
 
     public function testLoadWithCustomConfig(): void

@@ -29,6 +29,8 @@ class CommandLoggerExtension extends Extension implements PrependExtensionInterf
         $container->setParameter('command_logger.enabled', $processedConfig['enabled']);
         $container->setParameter('command_logger.purge_threshold', $processedConfig['purge_threshold']);
         $container->setParameter('command_logger.commands', $processedConfig['commands']);
+        $container->setParameter('command_logger.sensitive_parameters', $processedConfig['sensitive_parameters']);
+        $container->setParameter('command_logger.max_error_message_length', $processedConfig['max_error_message_length']);
 
         $loader = new YamlFileLoader($container, new FileLocator(__DIR__.'/../../config'));
         $loader->load('services.yaml');
