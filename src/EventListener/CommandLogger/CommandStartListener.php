@@ -35,7 +35,14 @@ class CommandStartListener extends AbstractCommandListener
     private SensitiveParameterRedactor $sensitiveParameterRedactor;
 
     /**
+     * @var array<int, string>
+     */
+    private array $attributedCommands;
+
+    /**
      * @param array<int|string, string> $otherCommands
+     * @param array<int, string>        $attributedCommands names (and aliases) collected at
+     *                                                       compile time by CommandLoggerPass
      */
     public function __construct(
         EntityManagerInterface $entityManager,
@@ -43,18 +50,20 @@ class CommandStartListener extends AbstractCommandListener
         bool $enabled,
         array $otherCommands,
         SensitiveParameterRedactor $sensitiveParameterRedactor,
+        array $attributedCommands = [],
     ) {
         $this->entityManager = $entityManager;
         $this->commandExecutionTracker = $commandExecutionTracker;
         $this->enabled = $enabled;
         $this->otherCommands = $otherCommands;
         $this->sensitiveParameterRedactor = $sensitiveParameterRedactor;
+        $this->attributedCommands = $attributedCommands;
     }
 
     public function onConsoleCommand(ConsoleCommandEvent $event): void
     {
         $command = $event->getCommand();
-        if (!$this->enabled || !$command || !$this->isSupportedCommand($command, $this->otherCommands)) {
+        if (!$this->enabled || !$command || !$this->isSupportedCommand($command, $this->otherCommands, $this->attributedCommands)) {
             return;
         }
 

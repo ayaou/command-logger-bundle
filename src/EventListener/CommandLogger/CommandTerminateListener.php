@@ -32,25 +32,34 @@ class CommandTerminateListener extends AbstractCommandListener
     private array $otherCommands;
 
     /**
+     * @var array<int, string>
+     */
+    private array $attributedCommands;
+
+    /**
      * @param array<int|string, string> $otherCommands
+     * @param array<int, string>        $attributedCommands names (and aliases) collected at
+     *                                                       compile time by CommandLoggerPass
      */
     public function __construct(
         EntityManagerInterface $entityManager,
         CommandExecutionTracker $commandExecutionTracker,
         bool $enabled,
         array $otherCommands = [],
+        array $attributedCommands = [],
     ) {
         $this->entityManager = $entityManager;
         $this->commandExecutionTracker = $commandExecutionTracker;
         $this->enabled = $enabled;
         $this->otherCommands = $otherCommands;
+        $this->attributedCommands = $attributedCommands;
     }
 
     public function onConsoleTerminate(ConsoleTerminateEvent $event): void
     {
         $command = $event->getCommand();
 
-        if (!$this->enabled || !$command || !$this->isSupportedCommand($command, $this->otherCommands)) {
+        if (!$this->enabled || !$command || !$this->isSupportedCommand($command, $this->otherCommands, $this->attributedCommands)) {
             return;
         }
 

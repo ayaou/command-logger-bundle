@@ -118,6 +118,30 @@ class AbstractCommandListenerTest extends TestCase
         $this->assertFalse($result);
     }
 
+    public function testSupportsCommandFromAttributedCommandsList(): void
+    {
+        $command = new TestCommandWithoutAttribute();
+        $result = $this->invokeMethod(
+            $this->listener,
+            'isSupportedCommand',
+            [$command, [], ['app:command-without-attribute']],
+        );
+
+        $this->assertTrue($result);
+    }
+
+    public function testReflectionFallbackAppliesWhenCommandIsNotInAttributedCommandsList(): void
+    {
+        $command = new TestCommandWithConfigureName();
+        $result = $this->invokeMethod(
+            $this->listener,
+            'isSupportedCommand',
+            [$command, [], ['some:other-command']],
+        );
+
+        $this->assertTrue($result);
+    }
+
     public function testWildcardMatchesCommandName(): void
     {
         $result = $this->invokeMethod($this->listener, 'matchWithWildcard', ['app:*', 'app:test']);
