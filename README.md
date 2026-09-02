@@ -111,6 +111,7 @@ For example, `--threshold=30` removes logs older than 30 days
 ## REST API
 
 The bundle can optionally expose the command log history over a read-only JSON-LD/Hydra REST API.
+It is **disabled by default** and must be opted into explicitly.
 
 > **:warning: Security warning**
 >
@@ -119,12 +120,35 @@ The bundle can optionally expose the command log history over a read-only JSON-L
 > logged command and its arguments. Protecting them is entirely the consuming application's
 > responsibility: restrict the path with `access_control` in `security.yaml` (or an equivalent
 > firewall rule) before exposing this API outside of trusted networks. This is the single most
-> important thing to get right before enabling this section — read it before you import the
-> routes below.
+> important thing to get right before enabling this section — read it before you do.
+>
+> **Enabling `api.enabled` may be all it takes to expose the routes.** On a Symfony 7.4 or 8.x
+> application (any skeleton generated with the default `config/routes.yaml`, which imports
+> `resource: routing.controllers`), that loader automatically routes the `#[Route]` attributes of
+> **every controller registered as a service** — including this bundle's, the moment `api.enabled`
+> turns it into one. The routes then appear in `debug:router` with **no import of
+> `config/routes.yaml` required at all**. Symfony 6.4 skeletons scope that same loader to
+> `App\Controller` only, so there the explicit import below is still what exposes the API. Either
+> way, put the `access_control` rule in place *before* setting `api.enabled: true` in any
+> environment you don't fully control — do not rely on "I haven't imported the routes yet".
 
 ### Enabling the API
 
-The bundle never loads its routes automatically. Import them explicitly and choose a prefix:
+Two things gate the API, and both are opt-in:
+
+**1. Turn on the API services** — this is the flag that matters most, since it is what can expose
+the routes on its own on Symfony 7.4/8.x (see the warning above):
+
+```yaml
+# config/packages/command_logger.yaml
+command_logger:
+    api:
+        enabled: true
+```
+
+**2. Import the routes and choose a prefix.** The bundle never imports its routes on its own
+behalf; do this explicitly regardless of Symfony version — it is required on 6.4, and harmless
+(if redundant) on 7.4/8.x:
 
 ```yaml
 # config/routes/command_logger.yaml
@@ -133,7 +157,7 @@ command_logger:
     prefix: /api
 ```
 
-Once imported, the API is reachable under the chosen prefix, e.g. `GET /api/command-logs`. Combine
+Once both steps are done, the API is reachable under the chosen prefix, e.g. `GET /api/command-logs`. Combine
 this with an `access_control` rule scoped to the same prefix, for example:
 
 ```yaml

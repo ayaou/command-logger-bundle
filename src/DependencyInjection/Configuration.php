@@ -52,6 +52,16 @@ class Configuration implements ConfigurationInterface
                     ->min(100)
                     ->info('Maximum byte length of the stored error message. Longer messages are truncated (multi-byte safe) and suffixed with " [truncated]".')
                 ->end()
+                ->arrayNode('api')
+                    ->addDefaultsIfNotSet()
+                    ->info('Read-only JSON-LD/Hydra REST API exposing the command log history. See the "REST API" section of README.md.')
+                    ->children()
+                        ->booleanNode('enabled')
+                            ->defaultFalse()
+                            ->info('Registers the API services (controller, JsonLdFactory, exception listener). Disabled by default: on a Symfony 7.4/8.x skeleton using the default "routing.controllers" resource, merely registering the controller as a service is enough to expose its routes with no access control, so this must stay an explicit opt-in.')
+                        ->end()
+                    ->end()
+                ->end()
             ->end();
 
         return $treeBuilder;
