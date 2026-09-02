@@ -14,10 +14,8 @@ declare(strict_types=1);
 namespace Ayaou\CommandLoggerBundle\Controller\Api;
 
 use Ayaou\CommandLoggerBundle\Dto\CommandLogFilter;
-use Ayaou\CommandLoggerBundle\Entity\CommandLog;
 use Ayaou\CommandLoggerBundle\Repository\CommandLogRepository;
 use Ayaou\CommandLoggerBundle\Service\JsonLdFactory;
-use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -25,7 +23,10 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\Routing\Attribute\Route;
 
-#[Route('/api/command-logs', name: 'api_command_logs_')]
+// Route names are prefixed with "command_logger_", the bundle alias, as required by the
+// Symfony best practices for bundle-provided routes. The path itself carries no prefix: the
+// consuming application chooses one when it imports config/routes.yaml (see README.md).
+#[Route('/command-logs', name: 'command_logger_api_')]
 class CommandLogController extends AbstractController
 {
     public function __construct(
@@ -50,13 +51,19 @@ class CommandLogController extends AbstractController
     }
 
     #[Route('/{id}', name: 'item', methods: ['GET'])]
-    public function item(
-        #[MapEntity(expr: 'repository.findOneByIdOrToken(id)')]
-        CommandLog $commandLog,
-    ): JsonResponse {
+    public function item(string $id): JsonResponse
+    {
+        // #[MapEntity(expr: ...)] was dropped: it requires symfony/expression-language, which
+        // this bundle does not depend on. Looking the log up directly keeps one dependency less.
+        $commandLog = $this->repository->findOneByIdOrToken($id);
+
+        if (null === $commandLog) {
+            throw $this->createNotFoundException();
+        }
+
         return $this->jsonLdFactory->createItemResponse(
             $commandLog,
-            'api_command_logs_item',
+            'command_logger_api_item',
             ['id' => $commandLog->getId()],
             ['command_log:item']
         );

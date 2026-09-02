@@ -18,9 +18,15 @@
     "symfony/console": "6.4.* || 7.4.* || ^8",
     "symfony/dependency-injection": "6.4.* || 7.4.* || ^8",
     "symfony/event-dispatcher": "6.4.* || 7.4.* || ^8",
+    "symfony/framework-bundle": "6.4.* || 7.4.* || ^8",
+    "symfony/http-foundation": "6.4.* || 7.4.* || ^8",
+    "symfony/http-kernel": "6.4.* || 7.4.* || ^8",
+    "symfony/property-access": "6.4.* || 7.4.* || ^8",
+    "symfony/property-info": "6.4.* || 7.4.* || ^8",
     "symfony/routing": "6.4.* || 7.4.* || ^8",
     "symfony/serializer": "6.4.* || 7.4.* || ^8",
     "symfony/uid": "6.4.* || 7.4.* || ^8",
+    "symfony/validator": "6.4.* || 7.4.* || ^8",
     "symfony/yaml": "6.4.* || 7.4.* || ^8"
   },
   "require-dev": {
@@ -29,8 +35,7 @@
     "friendsofphp/php-cs-fixer": "*",
     "phpstan/phpstan-symfony": "*",
     "roave/security-advisories": "dev-latest",
-    "symfony/phpunit-bridge": "6.4.* || 7.4.* || ^8",
-    "symfony/framework-bundle": "6.4.* || 7.4.* || ^8"
+    "symfony/phpunit-bridge": "6.4.* || 7.4.* || ^8"
   },
   "minimum-stability": "stable",
   "autoload": {
