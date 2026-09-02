@@ -18,7 +18,9 @@ use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\KernelEvents;
+use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Validator\Exception\ValidationFailedException; // <--- Import
 
 #[AsEventListener(event: KernelEvents::EXCEPTION)]
@@ -26,12 +28,13 @@ class ApiExceptionListener
 {
     public function __construct(
         #[Autowire('%kernel.debug%')] private readonly bool $isDebug,
+        private readonly RouterInterface $router,
     ) {
     }
 
     public function onKernelException(ExceptionEvent $event): void
     {
-        if (!$this->isBundleController($event)) {
+        if (!$this->isBundleRequest($event)) {
             return;
         }
 
@@ -75,6 +78,36 @@ class ApiExceptionListener
             $statusCode,
             ['Content-Type' => 'application/problem+json']
         ));
+    }
+
+    /**
+     * Whether this exception originates from one of the bundle's own API endpoints.
+     *
+     * Most exceptions are thrown from inside the resolved controller, so the "_controller"
+     * request attribute is enough to tell. A MethodNotAllowedHttpException is different: the
+     * router throws it while matching the route, before any controller is resolved, so that
+     * attribute is never set for it. In that case we fall back to matching the request path
+     * against this bundle's own routes directly.
+     */
+    private function isBundleRequest(ExceptionEvent $event): bool
+    {
+        if ($this->isBundleController($event)) {
+            return true;
+        }
+
+        if (!$event->getThrowable() instanceof MethodNotAllowedHttpException) {
+            return false;
+        }
+
+        $path = $event->getRequest()->getPathInfo();
+
+        foreach ($this->router->getRouteCollection() as $name => $route) {
+            if (str_starts_with($name, 'command_logger_api_') && preg_match($route->compile()->getRegex(), $path)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function isBundleController(ExceptionEvent $event): bool
