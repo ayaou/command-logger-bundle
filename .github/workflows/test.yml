@@ -16,19 +16,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        symfony-version: [ '6.4.*', '7.4.*', '8.0.*' ]
+        symfony-version: [ '6.4.*', '7.4.*', '8.1.*' ]
         php-version: [ '8.1', '8.2', '8.3', '8.4' , '8.5' ]
         exclude:
           # Symfony 7.x requires PHP 8.2+
           - php-version: '8.1'
             symfony-version: '7.4.*'
-          # Symfony 8.x requires PHP 8.4+
+          # Symfony 8.x requires PHP 8.4+ (8.1 requires >=8.4.1)
           - php-version: '8.1'
-            symfony-version: '8.0.*'
+            symfony-version: '8.1.*'
           - php-version: '8.2'
-            symfony-version: '8.0.*'
+            symfony-version: '8.1.*'
           - php-version: '8.3'
-            symfony-version: '8.0.*'
+            symfony-version: '8.1.*'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
