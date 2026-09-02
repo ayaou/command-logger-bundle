@@ -139,4 +139,71 @@ class CommandErrorListenerTest extends TestCase
         $this->assertEquals('Test error message', $log->getErrorMessage());
         $this->assertNull($log->getId());
     }
+
+    public function testLongErrorMessageIsTruncatedAndSuffixed(): void
+    {
+        $listener = new CommandErrorListener(
+            $this->entityManager,
+            $this->commandExecutionTracker,
+            true,
+            [],
+            100, // small limit to make the truncation easy to assert on
+        );
+
+        $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn('some-token');
+
+        $log = $this->createMock(CommandLog::class);
+        $this->repository->method('findOneBy')->with(['executionToken' => 'some-token'])->willReturn($log);
+
+        $storedMessage = null;
+        $log->expects($this->once())->method('setErrorMessage')
+            ->with($this->callback(function (string $message) use (&$storedMessage) {
+                $storedMessage = $message;
+
+                return true;
+            }));
+
+        // The exception message alone, plus its trace, is far longer than the 100-byte limit.
+        $error = new \Exception(str_repeat('a', 500));
+        $event = new ConsoleErrorEvent($this->input, $this->output, $error, $this->command);
+
+        $listener->onConsoleError($event);
+
+        $this->assertNotNull($storedMessage);
+        $this->assertLessThanOrEqual(100, \strlen($storedMessage));
+        $this->assertStringEndsWith(' [truncated]', $storedMessage);
+    }
+
+    public function testShortErrorMessageIsNotTruncated(): void
+    {
+        $listener = new CommandErrorListener(
+            $this->entityManager,
+            $this->commandExecutionTracker,
+            true,
+            [],
+            65535,
+        );
+
+        $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn('some-token');
+
+        $log = $this->createMock(CommandLog::class);
+        $this->repository->method('findOneBy')->with(['executionToken' => 'some-token'])->willReturn($log);
+
+        $storedMessage = null;
+        $log->expects($this->once())->method('setErrorMessage')
+            ->with($this->callback(function (string $message) use (&$storedMessage) {
+                $storedMessage = $message;
+
+                return true;
+            }));
+
+        $error = new \Exception('Short error');
+        $event = new ConsoleErrorEvent($this->input, $this->output, $error, $this->command);
+
+        $listener->onConsoleError($event);
+
+        $this->assertNotNull($storedMessage);
+        $this->assertStringContainsString('Short error', $storedMessage);
+        $this->assertStringNotContainsString('[truncated]', $storedMessage);
+    }
 }

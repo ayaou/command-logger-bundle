@@ -26,6 +26,17 @@ command_logger:
     - app:example-command
     - app:another-command
     - make:*
+  sensitive_parameters: # Argument/option names matching one of these substrings (case-insensitive) have their value replaced with [REDACTED] before being logged. Set to [] to disable redaction. Default:
+    - password
+    - passwd
+    - secret
+    - token
+    - api-key
+    - api_key
+    - apikey
+    - credential
+    - auth
+  max_error_message_length: 65535  # Maximum byte length of the stored error message; longer messages are truncated (multi-byte safe) and suffixed with " [truncated]" (default: 65535, minimum: 100)
 ```
 
 ## Usage

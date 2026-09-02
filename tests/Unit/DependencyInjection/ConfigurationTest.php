@@ -38,6 +38,8 @@ class ConfigurationTest extends TestCase
             'enabled' => true,
             'purge_threshold' => 100,
             'commands' => [],
+            'sensitive_parameters' => ['password', 'passwd', 'secret', 'token', 'api-key', 'api_key', 'apikey', 'credential', 'auth'],
+            'max_error_message_length' => 65535,
         ], $config);
     }
 
@@ -47,6 +49,8 @@ class ConfigurationTest extends TestCase
             'enabled' => false,
             'purge_threshold' => 30,
             'commands' => ['app:test-command'],
+            'sensitive_parameters' => ['password'],
+            'max_error_message_length' => 1000,
         ];
 
         $config = $this->processor->processConfiguration($this->configuration, [$inputConfig]);
@@ -55,7 +59,24 @@ class ConfigurationTest extends TestCase
             'enabled' => false,
             'purge_threshold' => 30,
             'commands' => ['app:test-command'],
+            'sensitive_parameters' => ['password'],
+            'max_error_message_length' => 1000,
         ], $config);
+    }
+
+    public function testEmptySensitiveParametersDisablesRedaction(): void
+    {
+        $config = $this->processor->processConfiguration($this->configuration, [['sensitive_parameters' => []]]);
+
+        $this->assertSame([], $config['sensitive_parameters']);
+    }
+
+    public function testMaxErrorMessageLengthBelowMinimumThrowsException(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('The value 99 is too small for path "command_logger.max_error_message_length". Should be greater than or equal to 100');
+
+        $this->processor->processConfiguration($this->configuration, [['max_error_message_length' => 99]]);
     }
 
     public function testNegativePurgeThresholdThrowsException(): void

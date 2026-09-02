@@ -16,6 +16,7 @@ namespace Ayaou\CommandLoggerBundle\Tests\Unit\EventListener;
 use Ayaou\CommandLoggerBundle\Entity\CommandLog;
 use Ayaou\CommandLoggerBundle\EventListener\CommandLogger\CommandStartListener;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
+use Ayaou\CommandLoggerBundle\Util\SensitiveParameterRedactor;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -55,12 +56,13 @@ class CommandStartListenerTest extends TestCase
             $this->commandExecutionTracker,
             true, // Enabled by default
             [],
+            new SensitiveParameterRedactor([]),
         );
     }
 
     public function testDoesNothingWhenDisabled(): void
     {
-        $listener = new CommandStartListener($this->entityManager, $this->commandExecutionTracker, false, []);
+        $listener = new CommandStartListener($this->entityManager, $this->commandExecutionTracker, false, [], new SensitiveParameterRedactor([]));
         $this->entityManager->expects($this->never())->method('persist');
         $this->commandExecutionTracker->expects($this->never())->method('setToken');
 
@@ -72,7 +74,7 @@ class CommandStartListenerTest extends TestCase
         $command = new TestCommandWithoutAttribute();
         $this->event = new ConsoleCommandEvent($command, $this->input, $this->output);
 
-        $listener = new CommandStartListener($this->entityManager, $this->commandExecutionTracker, true, []);
+        $listener = new CommandStartListener($this->entityManager, $this->commandExecutionTracker, true, [], new SensitiveParameterRedactor([]));
         $this->entityManager->expects($this->never())->method('persist');
         $this->commandExecutionTracker->expects($this->never())->method('setToken');
 
@@ -84,7 +86,7 @@ class CommandStartListenerTest extends TestCase
         $command = new TestCommandWithoutAttribute();
         $this->event = new ConsoleCommandEvent($command, $this->input, $this->output);
 
-        $listener = new CommandStartListener($this->entityManager, $this->commandExecutionTracker, true, ['app:command-without-attribute']);
+        $listener = new CommandStartListener($this->entityManager, $this->commandExecutionTracker, true, ['app:command-without-attribute'], new SensitiveParameterRedactor([]));
         $this->entityManager->expects($this->once())->method('persist');
         $this->commandExecutionTracker->expects($this->once())->method('setToken');
 

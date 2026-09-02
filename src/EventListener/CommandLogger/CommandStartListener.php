@@ -15,6 +15,7 @@ namespace Ayaou\CommandLoggerBundle\EventListener\CommandLogger;
 
 use Ayaou\CommandLoggerBundle\Entity\CommandLog;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
+use Ayaou\CommandLoggerBundle\Util\SensitiveParameterRedactor;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Event\ConsoleCommandEvent;
 use Symfony\Component\Uid\Uuid;
@@ -31,6 +32,8 @@ class CommandStartListener extends AbstractCommandListener
      */
     private array $otherCommands;
 
+    private SensitiveParameterRedactor $sensitiveParameterRedactor;
+
     /**
      * @param array<int|string, string> $otherCommands
      */
@@ -38,12 +41,14 @@ class CommandStartListener extends AbstractCommandListener
         EntityManagerInterface $entityManager,
         CommandExecutionTracker $commandExecutionTracker,
         bool $enabled,
-        array $otherCommands = [],
+        array $otherCommands,
+        SensitiveParameterRedactor $sensitiveParameterRedactor,
     ) {
         $this->entityManager = $entityManager;
         $this->commandExecutionTracker = $commandExecutionTracker;
         $this->enabled = $enabled;
         $this->otherCommands = $otherCommands;
+        $this->sensitiveParameterRedactor = $sensitiveParameterRedactor;
     }
 
     public function onConsoleCommand(ConsoleCommandEvent $event): void
@@ -64,8 +69,10 @@ class CommandStartListener extends AbstractCommandListener
 
         $this->commandExecutionTracker->setToken($command, $executionToken);
 
+        $arguments = $this->sensitiveParameterRedactor->redact($input->getArguments() + $input->getOptions());
+
         $log->setCommandName($commandName)
-            ->setArguments($input->getArguments() + $input->getOptions())
+            ->setArguments($arguments)
             ->setStartTime(new \DateTimeImmutable())
             ->setExecutionToken($executionToken);
 
