@@ -40,6 +40,7 @@ class ConfigurationTest extends TestCase
             'commands' => [],
             'sensitive_parameters' => ['password', 'passwd', 'secret', 'token', 'api-key', 'api_key', 'apikey', 'credential', 'auth'],
             'max_error_message_length' => 65535,
+            'api' => ['enabled' => false],
         ], $config);
     }
 
@@ -51,6 +52,7 @@ class ConfigurationTest extends TestCase
             'commands' => ['app:test-command'],
             'sensitive_parameters' => ['password'],
             'max_error_message_length' => 1000,
+            'api' => ['enabled' => true],
         ];
 
         $config = $this->processor->processConfiguration($this->configuration, [$inputConfig]);
@@ -61,6 +63,7 @@ class ConfigurationTest extends TestCase
             'commands' => ['app:test-command'],
             'sensitive_parameters' => ['password'],
             'max_error_message_length' => 1000,
+            'api' => ['enabled' => true],
         ], $config);
     }
 

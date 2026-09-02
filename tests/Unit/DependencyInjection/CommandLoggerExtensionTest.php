@@ -13,7 +13,10 @@ declare(strict_types=1);
 
 namespace Ayaou\CommandLoggerBundle\Tests\Unit\DependencyInjection;
 
+use Ayaou\CommandLoggerBundle\Controller\Api\CommandLogController;
 use Ayaou\CommandLoggerBundle\DependencyInjection\CommandLoggerExtension;
+use Ayaou\CommandLoggerBundle\EventListener\Api\ApiExceptionListener;
+use Ayaou\CommandLoggerBundle\Service\JsonLdFactory;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -71,5 +74,30 @@ class CommandLoggerExtensionTest extends TestCase
         ];
 
         $this->extension->load([$config], $this->container);
+    }
+
+    /**
+     * The whole point of "api.enabled" defaulting to false: with the default configuration, the
+     * container must not contain any of the bundle's API services. Otherwise, a Symfony 7.4/8.x
+     * skeleton using the default "routing.controllers" resource would auto-expose the controller's
+     * routes the moment it becomes a service - with no access control and without the consuming
+     * application importing anything.
+     */
+    public function testApiServicesAreNotRegisteredByDefault(): void
+    {
+        $this->extension->load([[]], $this->container);
+
+        $this->assertFalse($this->container->hasDefinition(CommandLogController::class));
+        $this->assertFalse($this->container->hasDefinition(JsonLdFactory::class));
+        $this->assertFalse($this->container->hasDefinition(ApiExceptionListener::class));
+    }
+
+    public function testApiServicesAreRegisteredWhenApiEnabled(): void
+    {
+        $this->extension->load([['api' => ['enabled' => true]]], $this->container);
+
+        $this->assertTrue($this->container->hasDefinition(CommandLogController::class));
+        $this->assertTrue($this->container->hasDefinition(JsonLdFactory::class));
+        $this->assertTrue($this->container->hasDefinition(ApiExceptionListener::class));
     }
 }

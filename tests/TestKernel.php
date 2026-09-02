@@ -34,6 +34,15 @@ class TestKernel extends Kernel
         $loader->load($rootDir.'/config/services.yaml');
 
         $loader->load(function ($container) use ($isOrm3, $rootDir) {
+            // The bundle's API services are opt-in (see config/api.yaml and the "REST API"
+            // section of README.md) and default to disabled. The existing API integration tests
+            // exercise the real controller/JsonLdFactory/ApiExceptionListener services, so they
+            // must be turned on here explicitly - production applications do the same in their
+            // own config/packages/command_logger.yaml.
+            $container->loadFromExtension('command_logger', [
+                'api' => ['enabled' => true],
+            ]);
+
             $container->loadFromExtension('framework', [
                 'secret' => 'test',
                 'test' => true,

@@ -1,0 +1,26 @@
+# Services backing the bundle's optional REST API.
+#
+# This file is loaded by CommandLoggerExtension only when "command_logger.api.enabled" is true
+# (see CommandLoggerExtension::load() and the "REST API" section of README.md). Keeping these
+# services out of config/services.yaml's mass registration - they are excluded there explicitly -
+# is what keeps CommandLogController from existing as a service at all until the flag is on: a
+# Symfony 7.4/8.x skeleton's default "routing.controllers" resource auto-exposes the #[Route]
+# attributes of any controller registered as a service, with no access control and no explicit
+# route import, so the controller must simply not exist as a service until this is opted into.
+services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+    public: false
+
+  Ayaou\CommandLoggerBundle\Controller\Api\CommandLogController:
+    # Required for controllers registered as services: it lets Symfony resolve named/typed
+    # controller arguments (including #[MapQueryString]) the same way it does for controllers
+    # loaded through the default App\Controller\ registration in a standard Symfony skeleton.
+    tags: ['controller.service_arguments']
+
+  Ayaou\CommandLoggerBundle\Service\JsonLdFactory: ~
+
+  # Registers itself on kernel.exception via its own #[AsEventListener] attribute; autoconfigure
+  # is enough to pick that up.
+  Ayaou\CommandLoggerBundle\EventListener\Api\ApiExceptionListener: ~
