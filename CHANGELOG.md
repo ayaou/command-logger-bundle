@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/ayaou/command-logger-bundle/compare/v1.7.0...v1.7.1) (2026-09-02)
+
+
+### Bug Fixes
+
+* **listener:** detect the attribute on invokable commands ([e8dde6a](https://github.com/ayaou/command-logger-bundle/commit/e8dde6abb8878e4970d7de40684e8415f3ec12a3))
+
 # [1.7.0](https://github.com/ayaou/command-logger-bundle/compare/v1.6.0...v1.7.0) (2026-09-02)
 
 
