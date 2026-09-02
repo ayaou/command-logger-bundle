@@ -4,9 +4,23 @@ services:
     autoconfigure: true
     public: false
 
+  # Controller, EventListener/Api and Service (which today only holds JsonLdFactory.php) are
+  # excluded here on purpose: they are declared as services in config/api.yaml instead, which
+  # CommandLoggerExtension only loads when "command_logger.api.enabled" is true. Registering
+  # CommandLogController as a service unconditionally is exactly what let a Symfony 7.4/8.x
+  # skeleton's default "routing.controllers" resource auto-expose its routes with no access
+  # control and no explicit import - see the "REST API" section of README.md.
+  # Dto and Attribute never needed to be services either: one is a plain DTO, the other a
+  # PHP attribute class - neither is a dependency anything is wired against.
   Ayaou\CommandLoggerBundle\:
     resource: '../src/*'
-    exclude: '../src/{Entity}'
+    exclude:
+      - '../src/Entity'
+      - '../src/Controller'
+      - '../src/EventListener/Api'
+      - '../src/Service'
+      - '../src/Dto'
+      - '../src/Attribute'
 
   Ayaou\CommandLoggerBundle\EventListener\CommandLogger\CommandStartListener:
     class: Ayaou\CommandLoggerBundle\EventListener\CommandLogger\CommandStartListener

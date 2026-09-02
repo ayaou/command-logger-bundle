@@ -1,8 +1,17 @@
 # Routes for the bundle's REST API.
 #
-# Bundle routes are never loaded automatically by Symfony - the application must import this
-# file explicitly (see the "REST API" section of README.md). Importing it is therefore the only
-# switch that exposes the API; there is no separate "enabled" flag.
+# Reaching these routes requires "command_logger.api.enabled: true" first (see README.md's "REST
+# API" section): that flag is what makes config/api.yaml register CommandLogController as a
+# service in the first place (see config/services.yaml's exclude list and
+# CommandLoggerExtension::load()) - without it, this resource resolves to no routes at all.
+#
+# Once the flag is on, whether this file also needs to be imported explicitly depends on the
+# consuming application's Symfony version:
+#   - Symfony 6.4 skeletons scope their default "routing.controllers" resource to
+#     "App\Controller" only, so the application must still import this file explicitly.
+#   - Symfony 7.4/8.x skeletons route the #[Route] attributes of every controller registered as a
+#     service through "routing.controllers", so these routes are exposed automatically as soon as
+#     the flag above is on - importing this file explicitly is then redundant, not a switch.
 command_logger_api:
     resource: '../src/Controller/Api/'
     type: attribute

@@ -46,6 +46,14 @@ class CommandLoggerExtension extends Extension implements PrependExtensionInterf
 
         $loader = new YamlFileLoader($container, new FileLocator(__DIR__.'/../../config'));
         $loader->load('services.yaml');
+
+        // config/api.yaml declares the API's controller, JsonLdFactory and exception listener.
+        // Loading it only when explicitly enabled is what keeps CommandLogController from
+        // existing as a service at all otherwise - see config/services.yaml's exclude list and
+        // the "REST API" section of README.md for why that matters on Symfony 7.4/8.x.
+        if ($processedConfig['api']['enabled']) {
+            $loader->load('api.yaml');
+        }
     }
 
     public function getAlias(): string
