@@ -26,9 +26,16 @@ use Symfony\Component\Routing\Attribute\Route;
 // Route names are prefixed with "command_logger_", the bundle alias, as required by the
 // Symfony best practices for bundle-provided routes. The path itself carries no prefix: the
 // consuming application chooses one when it imports config/routes.yaml (see README.md).
-#[Route('/command-logs', name: 'command_logger_api_')]
+#[Route(self::PATH, name: 'command_logger_api_')]
 class CommandLogController extends AbstractController
 {
+    /**
+     * The path this controller mounts itself on, below whatever prefix the application
+     * chose when importing config/routes.yaml. JsonLdFactory strips it back off to recover
+     * that prefix, so the two must never drift apart - hence a shared constant.
+     */
+    public const PATH = '/command-logs';
+
     public function __construct(
         private readonly CommandLogRepository $repository,
         private readonly JsonLdFactory $jsonLdFactory,
@@ -46,6 +53,7 @@ class CommandLogController extends AbstractController
         return $this->jsonLdFactory->createCollectionResponse(
             $paginator,
             $request,
+            $filter,
             ['command_log:list']
         );
     }

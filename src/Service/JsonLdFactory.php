@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Ayaou\CommandLoggerBundle\Service;
 
+use Ayaou\CommandLoggerBundle\Controller\Api\CommandLogController;
+use Ayaou\CommandLoggerBundle\Dto\CommandLogFilter;
 use Doctrine\ORM\Tools\Pagination\Paginator;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -47,7 +49,7 @@ class JsonLdFactory
         // We temporarily wrap the data to add JSON-LD fields without dirtying the Entity
         // Note: Real API Platform uses Normalizers, but this is faster for simple bundles
         $payload = [
-            '@context' => "/api/contexts/$context",
+            '@context' => $this->getApiBasePath()."/contexts/$context",
             '@id' => $this->urlGenerator->generate($route, $routeParams),
             '@type' => $context,
             // Merge the actual entity data after serialization to avoid recursion issues
@@ -65,12 +67,21 @@ class JsonLdFactory
      *
      * @throws ExceptionInterface
      */
-    public function createCollectionResponse(Paginator $paginator, Request $request, array $groups = []): JsonResponse
-    {
+    public function createCollectionResponse(
+        Paginator $paginator,
+        Request $request,
+        CommandLogFilter $filter,
+        array $groups = [],
+    ): JsonResponse {
         $totalItems = count($paginator);
-        $limit = $request->query->getInt('limit', 10);
-        $page = $request->query->getInt('page', 1);
-        $lastPage = (int) ceil($totalItems / $limit);
+        // $filter is the very same CommandLogFilter already validated by #[MapQueryString]
+        // (see CommandLogController::index()): page/limit must be read from it, never
+        // re-read from the raw query string, so there is a single, validated source of truth.
+        $limit = $filter->limit;
+        $page = $filter->page;
+        // ceil(0 / $limit) is 0 for an empty collection: floor it to 1 so "hydra:last" never
+        // points to a nonexistent page 0.
+        $lastPage = max(1, (int) ceil($totalItems / $limit));
 
         $route = $request->attributes->getString('_route');
         $queryParams = $request->query->all();
@@ -78,15 +89,22 @@ class JsonLdFactory
         $view = [
             '@id' => $request->getRequestUri(),
             '@type' => 'hydra:PartialCollectionView',
+            'hydra:first' => $this->generateUrl($route, $queryParams, 1),
+            'hydra:last' => $this->generateUrl($route, $queryParams, $lastPage),
         ];
 
-        $view['hydra:first'] = $this->generateUrl($route, $queryParams, 1);
-        $view['hydra:last'] = $this->generateUrl($route, $queryParams, $lastPage);
-        $view['hydra:previous'] = $page > 1 ? $this->generateUrl($route, $queryParams, $page - 1) : '';
-        $view['hydra:next'] = $page < $lastPage ? $this->generateUrl($route, $queryParams, $page + 1) : '';
+        // An empty string is not a valid IRI: omit the key entirely rather than emit one when
+        // there is no previous/next page.
+        if ($page > 1) {
+            $view['hydra:previous'] = $this->generateUrl($route, $queryParams, $page - 1);
+        }
+
+        if ($page < $lastPage) {
+            $view['hydra:next'] = $this->generateUrl($route, $queryParams, $page + 1);
+        }
 
         $payload = [
-            '@context' => '/api/contexts/Collection',
+            '@context' => $this->getApiBasePath().'/contexts/Collection',
             '@id' => $request->getRequestUri(),
             '@type' => 'hydra:Collection',
             'hydra:totalItems' => $totalItems,
@@ -116,6 +134,22 @@ class JsonLdFactory
         $params['page'] = $page;
 
         return $this->urlGenerator->generate($route, $params);
+    }
+
+    /**
+     * Recovers whatever prefix (if any) the consuming application chose when it imported
+     * config/routes.yaml.
+     *
+     * The prefix is only known once routes are imported, so it cannot be hardcoded: it is
+     * merged into the compiled route path at import time. Generating the "list" route's URL
+     * and stripping this bundle's own "/command-logs" suffix recovers exactly that prefix,
+     * which keeps "@context" correct under any mount point instead of assuming "/api".
+     */
+    private function getApiBasePath(): string
+    {
+        $listPath = $this->urlGenerator->generate('command_logger_api_list');
+
+        return substr($listPath, 0, -\strlen(CommandLogController::PATH));
     }
 
     private function getContextName(mixed $data): string

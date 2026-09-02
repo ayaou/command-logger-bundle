@@ -108,6 +108,68 @@ bin/console command-logger:purge --threshold=30
 ```
 For example, `--threshold=30` removes logs older than 30 days
 
+## REST API
+
+The bundle can optionally expose the command log history over a read-only JSON-LD/Hydra REST API.
+
+> **:warning: Security warning**
+>
+> These endpoints expose the full command execution history, including command arguments. They
+> ship with **no access control of any kind** — anyone who can reach the routes can read every
+> logged command and its arguments. Protecting them is entirely the consuming application's
+> responsibility: restrict the path with `access_control` in `security.yaml` (or an equivalent
+> firewall rule) before exposing this API outside of trusted networks. This is the single most
+> important thing to get right before enabling this section — read it before you import the
+> routes below.
+
+### Enabling the API
+
+The bundle never loads its routes automatically. Import them explicitly and choose a prefix:
+
+```yaml
+# config/routes/command_logger.yaml
+command_logger:
+    resource: '@CommandLoggerBundle/config/routes.yaml'
+    prefix: /api
+```
+
+Once imported, the API is reachable under the chosen prefix, e.g. `GET /api/command-logs`. Combine
+this with an `access_control` rule scoped to the same prefix, for example:
+
+```yaml
+# config/packages/security.yaml
+security:
+    access_control:
+        - { path: ^/api/command-logs, roles: ROLE_ADMIN }
+```
+
+### Endpoints
+
+| Method | Path                 | Description                                                          |
+|--------|----------------------|------------------------------------------------------------------------|
+| `GET`  | `/command-logs`      | Paginated, filterable collection of command logs (JSON-LD Hydra collection). |
+| `GET`  | `/command-logs/{id}` | A single command log, looked up by its numeric `id` or its `executionToken`. |
+
+Route names are prefixed with `command_logger_api_` (e.g. `command_logger_api_list`,
+`command_logger_api_item`), following Symfony's naming convention for bundle-provided routes.
+
+### Query parameters
+
+All parameters below apply to `GET /command-logs` and can be combined, unless stated otherwise.
+
+* `page` (optional, integer, default `1`) — Page number to return; must be positive.
+* `limit` (optional, integer, default `10`) — Number of entries per page; must be between `1` and `100`.
+* `name` (optional, string, minimum length `2`) — Filters logs whose command name contains this value.
+* `status` (optional, string, one of `success` or `error`) — Filters by outcome. Cannot be combined with `code`.
+* `code` (optional, integer) — Filters by exact exit code. Cannot be combined with `status`.
+* `from` (optional, string, `Y-m-d` or `Y-m-d H:i:s`) — Only logs started on or after this date/time.
+* `to` (optional, string, `Y-m-d` or `Y-m-d H:i:s`) — Only logs started on or before this date/time. Must not be earlier than `from`.
+
+Invalid or conflicting parameters return `422 Unprocessable Entity` with a
+[Problem Details](https://www.rfc-editor.org/rfc/rfc9457) (`application/problem+json`) body listing
+the offending `violations`, each with its `propertyPath`. Unknown ids return `404 Not Found` in the
+same Problem Details format.
+
 ## License
 MIT License
 
