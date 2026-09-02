@@ -32,6 +32,18 @@ class CommandLoggerExtension extends Extension implements PrependExtensionInterf
         $container->setParameter('command_logger.sensitive_parameters', $processedConfig['sensitive_parameters']);
         $container->setParameter('command_logger.max_error_message_length', $processedConfig['max_error_message_length']);
 
+        // Default value for the parameter that CommandLoggerPass populates at compile time
+        // (see CommandLoggerBundle::build()). It must exist here already: services.yaml
+        // references it as "%command_logger.attributed_commands%", and Symfony's own
+        // ResolveParameterPlaceHoldersPass (TYPE_OPTIMIZE) checks that every referenced
+        // parameter exists *before* CommandLoggerPass (TYPE_BEFORE_REMOVING) has a chance to
+        // set its real value - an undeclared parameter here fails the container compilation.
+        // Because the parameter is array-valued, Symfony intentionally leaves the placeholder
+        // unresolved in the service argument (see ResolveParameterPlaceHoldersPass's
+        // $resolveArrays flag) instead of inlining it, so the value CommandLoggerPass sets
+        // later is still the one that reaches the listeners.
+        $container->setParameter('command_logger.attributed_commands', []);
+
         $loader = new YamlFileLoader($container, new FileLocator(__DIR__.'/../../config'));
         $loader->load('services.yaml');
     }
