@@ -10,7 +10,6 @@ use Doctrine\ORM\Mapping\Driver\AttributeDriver;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\HttpKernel\Kernel;
-use Symfony\Component\Routing\RouteCollection;
 
 class TestKernel extends Kernel
 {
@@ -34,7 +33,7 @@ class TestKernel extends Kernel
         $rootDir = rtrim($this->getProjectDir(), '/');
         $loader->load($rootDir.'/config/services.yaml');
 
-        $loader->load(function ($container) use ($isOrm3) {
+        $loader->load(function ($container) use ($isOrm3, $rootDir) {
             $container->loadFromExtension('framework', [
                 'secret' => 'test',
                 'test' => true,
@@ -48,10 +47,19 @@ class TestKernel extends Kernel
                 'serializer' => [
                     'enabled' => true,
                 ],
+                // Loads the bundle's own config/routes.yaml exactly as a consuming
+                // application would (see README.md), so functional tests exercise the real
+                // routing/attribute wiring.
+                //
+                // Note: a "kernel::method" service-based resource (type: service) was tried
+                // first, but it requires the kernel service to be tagged "routing.route_loader"
+                // under the id "kernel" - wiring that only Symfony\Bundle\FrameworkBundle\Kernel\
+                // MicroKernelTrait sets up. This plain Kernel subclass does not use that trait,
+                // so pointing the router directly at the YAML file is simpler and correct.
                 'router' => [
                     'utf8' => true,
-                    'resource' => 'kernel::loadRoutes',
-                    'type' => 'service',
+                    'resource' => $rootDir.'/config/routes.yaml',
+                    'type' => 'yaml',
                 ],
             ]);
 
@@ -101,14 +109,6 @@ class TestKernel extends Kernel
                 ->setArguments([['%kernel.project_dir%/src/Entity'], true])
                 ->setPublic(true);
         });
-    }
-
-    /**
-     * Required by the 'router' config above.
-     */
-    public function loadRoutes(LoaderInterface $loader): RouteCollection
-    {
-        return new RouteCollection();
     }
 
     public function getProjectDir(): string

@@ -1,0 +1,8 @@
+# Routes for the bundle's REST API.
+#
+# Bundle routes are never loaded automatically by Symfony - the application must import this
+# file explicitly (see the "REST API" section of README.md). Importing it is therefore the only
+# switch that exposes the API; there is no separate "enabled" flag.
+command_logger_api:
+    resource: '../src/Controller/Api/'
+    type: attribute

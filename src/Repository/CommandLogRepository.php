@@ -35,6 +35,19 @@ class CommandLogRepository extends ServiceEntityRepository
     }
 
     /**
+     * Finds a single log by its numeric id, or by its execution token when the value is not
+     * numeric. The API exposes both identifiers under the same {id} route parameter.
+     */
+    public function findOneByIdOrToken(string $id): ?CommandLog
+    {
+        if (ctype_digit($id)) {
+            return $this->find((int) $id);
+        }
+
+        return $this->findOneBy(['executionToken' => $id]);
+    }
+
+    /**
      * Purge logs older than the given date.
      *
      * @return int Number of deleted rows
