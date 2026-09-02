@@ -3,6 +3,8 @@
 $finder = (new PhpCsFixer\Finder())
     ->in(__DIR__)
     ->exclude('var')
+    // Applications jetables du smoke test (.docker/smoke-app.sh) : ce n'est pas notre code.
+    ->exclude('projects')
 ;
 
 return (new PhpCsFixer\Config())

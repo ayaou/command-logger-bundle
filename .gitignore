@@ -23,3 +23,6 @@ phpunit.xml
 .coverage
 # Outillage local non versionné (voir aussi .docker/)
 Makefile
+
+# Généré par Symfony 8 au boot du kernel ("for apps only" selon le fichier lui-même)
+config/reference.php

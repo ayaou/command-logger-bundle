@@ -15,4 +15,13 @@ use Symfony\Component\Dotenv\Dotenv;
 
 require dirname(__DIR__).'/vendor/autoload.php';
 
-(new Dotenv())->bootEnv(dirname(__DIR__).'/.env');
+/*
+ * symfony/dotenv is not a dependency of this bundle, and a bundle has no .env: loading it
+ * only makes sense when both happen to be there (a checkout used as an application).
+ * Without these guards, every PHPUnit run dies with a fatal error.
+ */
+$envFile = dirname(__DIR__).'/.env';
+
+if (class_exists(Dotenv::class) && is_file($envFile)) {
+    (new Dotenv())->bootEnv($envFile);
+}
