@@ -15,6 +15,7 @@ namespace Ayaou\CommandLoggerBundle\Tests\Unit\EventListener;
 
 use Ayaou\CommandLoggerBundle\EventListener\CommandLogger\CommandStartListener;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
+use Ayaou\CommandLoggerBundle\Util\SensitiveParameterRedactor;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\Exception;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -41,6 +42,7 @@ class AbstractCommandListenerTest extends TestCase
             $this->commandExecutionTracker,
             true, // enabled
             [], // otherCommands
+            new SensitiveParameterRedactor([]),
         );
     }
 
@@ -92,6 +94,7 @@ class AbstractCommandListenerTest extends TestCase
             $this->commandExecutionTracker,
             true,
             [],
+            new SensitiveParameterRedactor([]),
         );
 
         $result = $this->invokeIsSupportedCommand($lazyCommand, []);
@@ -107,6 +110,7 @@ class AbstractCommandListenerTest extends TestCase
             $this->commandExecutionTracker,
             true,
             [],
+            new SensitiveParameterRedactor([]),
         );
 
         $result = $this->invokeIsSupportedCommand($lazyCommand, []);

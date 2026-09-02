@@ -29,8 +29,13 @@ services:
     arguments:
       $enabled: '%command_logger.enabled%'
       $otherCommands: '%command_logger.commands%'
+      $maxErrorMessageLength: '%command_logger.max_error_message_length%'
     tags:
       - { name: kernel.event_listener, event: console.error, method: onConsoleError }
+
+  Ayaou\CommandLoggerBundle\Util\SensitiveParameterRedactor:
+    arguments:
+      $sensitiveParameters: '%command_logger.sensitive_parameters%'
 
   Ayaou\CommandLoggerBundle\Command\PurgeCommandLoggerTableCommand:
     arguments:

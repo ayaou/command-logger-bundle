@@ -39,6 +39,19 @@ class Configuration implements ConfigurationInterface
                         ->info('List of commands to log. Example: ["app:example", "app:another-example"]')
                     ->end()
                 ->defaultValue([])
+                ->end()
+                ->arrayNode('sensitive_parameters')
+                    ->scalarPrototype()
+                        ->info('Case-insensitive substring matched against argument/option names, e.g. "password" also catches "db-password".')
+                    ->end()
+                    ->defaultValue(['password', 'passwd', 'secret', 'token', 'api-key', 'api_key', 'apikey', 'credential', 'auth'])
+                    ->info('Argument/option names matching one of these substrings have their value replaced with [REDACTED] before being logged. Set to [] to disable redaction.')
+                ->end()
+                ->integerNode('max_error_message_length')
+                    ->defaultValue(65535)
+                    ->min(100)
+                    ->info('Maximum byte length of the stored error message. Longer messages are truncated (multi-byte safe) and suffixed with " [truncated]".')
+                ->end()
             ->end();
 
         return $treeBuilder;

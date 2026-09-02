@@ -21,6 +21,7 @@ use Ayaou\CommandLoggerBundle\Tests\Integration\AppKernelTestCase;
 use Ayaou\CommandLoggerBundle\Tests\Unit\EventListener\TestCommand;
 use Ayaou\CommandLoggerBundle\Tests\Unit\EventListener\TestCommandWithoutAttribute;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
+use Ayaou\CommandLoggerBundle\Util\SensitiveParameterRedactor;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Component\Console\ConsoleEvents;
@@ -207,7 +208,7 @@ class CommandLoggerLifecycleTest extends AppKernelTestCase
     {
         $tracker = new CommandExecutionTracker();
 
-        $startListener = new CommandStartListener($this->entityManager, $tracker, $enabled, $otherCommands);
+        $startListener = new CommandStartListener($this->entityManager, $tracker, $enabled, $otherCommands, new SensitiveParameterRedactor([]));
         $terminateListener = new CommandTerminateListener($this->entityManager, $tracker, $enabled, $otherCommands);
         $errorListener = new CommandErrorListener($this->entityManager, $tracker, $enabled, $otherCommands);
 
