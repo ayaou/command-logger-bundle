@@ -21,3 +21,5 @@ phpunit.xml
 .phpunit.result.cache
 .phpunit.cache
 .coverage
+# Outillage local non versionné (voir aussi .docker/)
+Makefile
