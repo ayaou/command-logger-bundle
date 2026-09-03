@@ -83,6 +83,8 @@ class CommandLoggerPass implements CompilerPassInterface
      * (e.g. "app:cmd|app:alias"). Splitting on "|" therefore covers both the bare name and every
      * alias, however they were declared.
      *
+     * @param \ReflectionClass<object> $reflection
+     *
      * @return list<string>
      */
     private function getCommandNames(\ReflectionClass $reflection): array

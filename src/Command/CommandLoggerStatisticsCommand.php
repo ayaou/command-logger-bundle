@@ -30,6 +30,12 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 class CommandLoggerStatisticsCommand extends Command
 {
+    /**
+     * Default size of the per-command breakdown. Shared between the option definition
+     * and the fallback below so the two can never drift apart.
+     */
+    private const DEFAULT_LIMIT = 10;
+
     private CommandLogRepository $commandLogRepository;
 
     public function __construct(
@@ -47,7 +53,7 @@ class CommandLoggerStatisticsCommand extends Command
             ->addOption('code', 'c', InputOption::VALUE_OPTIONAL, 'Filter by exit code')
             ->addOption('from', null, InputOption::VALUE_OPTIONAL, 'Only include logs started on or after this date/time (Y-m-d or Y-m-d H:i:s)')
             ->addOption('to', null, InputOption::VALUE_OPTIONAL, 'Only include logs started on or before this date/time (Y-m-d or Y-m-d H:i:s)')
-            ->addOption('limit', 'l', InputOption::VALUE_OPTIONAL, 'Number of commands to show in the per-command breakdown', 10);
+            ->addOption('limit', 'l', InputOption::VALUE_OPTIONAL, 'Number of commands to show in the per-command breakdown', self::DEFAULT_LIMIT);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -89,6 +95,10 @@ class CommandLoggerStatisticsCommand extends Command
             }
 
             $limit = (int) $limit;
+        } else {
+            // getOption() is declared to return mixed, so the option's own default is not
+            // enough for static analysis: restate it explicitly, from the same constant.
+            $limit = self::DEFAULT_LIMIT;
         }
 
         $filter = new CommandLogFilter(

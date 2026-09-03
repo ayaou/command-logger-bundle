@@ -139,11 +139,23 @@ class JsonLdFactory
     /**
      * @param array<string> $groups
      *
+     * @return array<mixed>
+     *
      * @throws ExceptionInterface
      */
     private function normalize(mixed $data, array $groups): array
     {
-        return $this->serializer->normalize($data, 'json', ['groups' => $groups]);
+        $normalized = $this->serializer->normalize($data, 'json', ['groups' => $groups]);
+
+        // NormalizerInterface::normalize() is typed to allow scalars/null/ArrayObject too, but
+        // every caller here passes an entity or a list of entities, which the serializer always
+        // turns into an array. Assert it rather than silently casting, so a real regression
+        // (e.g. a misconfigured normalizer) fails loudly instead of producing a bogus payload.
+        if (!is_array($normalized)) {
+            throw new \UnexpectedValueException(sprintf('Expected the normalizer to return an array, got "%s".', get_debug_type($normalized)));
+        }
+
+        return $normalized;
     }
 
     /**
