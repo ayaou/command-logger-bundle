@@ -20,7 +20,7 @@ use Symfony\Component\Console\Command\Command;
  * A Command subclass that sets its name in configure() rather than via #[AsCommand].
  * CommandLoggerPass has no #[AsCommand] to read here, so this name can never appear in the
  * "command_logger.attributed_commands" parameter it builds. It exists to prove that
- * AbstractCommandListener's reflection-based fallback still covers this case on its own.
+ * SupportedCommandResolver's reflection-based fallback still covers this case on its own.
  */
 #[CommandLogger]
 class TestCommandWithConfigureName extends Command

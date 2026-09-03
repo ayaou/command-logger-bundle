@@ -26,8 +26,6 @@ services:
     class: Ayaou\CommandLoggerBundle\EventListener\CommandLogger\CommandStartListener
     arguments:
       $enabled: '%command_logger.enabled%'
-      $otherCommands: '%command_logger.commands%'
-      $attributedCommands: '%command_logger.attributed_commands%'
       $logger: '@?logger'
     tags:
       - { name: kernel.event_listener, event: console.command, method: onConsoleCommand }
@@ -36,8 +34,6 @@ services:
     class: Ayaou\CommandLoggerBundle\EventListener\CommandLogger\CommandTerminateListener
     arguments:
       $enabled: '%command_logger.enabled%'
-      $otherCommands: '%command_logger.commands%'
-      $attributedCommands: '%command_logger.attributed_commands%'
       $logger: '@?logger'
     tags:
       - { name: kernel.event_listener, event: console.terminate, method: onConsoleTerminate }
@@ -46,12 +42,15 @@ services:
     class: Ayaou\CommandLoggerBundle\EventListener\CommandLogger\CommandErrorListener
     arguments:
       $enabled: '%command_logger.enabled%'
-      $otherCommands: '%command_logger.commands%'
       $maxErrorMessageLength: '%command_logger.max_error_message_length%'
-      $attributedCommands: '%command_logger.attributed_commands%'
       $logger: '@?logger'
     tags:
       - { name: kernel.event_listener, event: console.error, method: onConsoleError }
+
+  Ayaou\CommandLoggerBundle\Util\SupportedCommandResolver:
+    arguments:
+      $otherCommands: '%command_logger.commands%'
+      $attributedCommands: '%command_logger.attributed_commands%'
 
   Ayaou\CommandLoggerBundle\Util\SensitiveParameterRedactor:
     arguments:

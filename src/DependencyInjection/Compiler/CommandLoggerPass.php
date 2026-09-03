@@ -36,7 +36,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
  * each tagged service Definition's class directly out of the container and reflects on the
  * class, never instantiating anything.
  *
- * The reflection-based fallback in AbstractCommandListener::hasCommandLoggerAttribute() is kept
+ * The reflection-based fallback in SupportedCommandResolver::hasCommandLoggerAttribute() is kept
  * intentionally: it still covers a Command subclass that sets its name in configure() instead of
  * via #[AsCommand] (this pass has no name to read for it), and a command that is registered
  * directly on an Application without ever going through the container.

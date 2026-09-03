@@ -17,6 +17,7 @@ use Ayaou\CommandLoggerBundle\Entity\CommandLog;
 use Ayaou\CommandLoggerBundle\EventListener\CommandLogger\CommandErrorListener;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
 use Ayaou\CommandLoggerBundle\Util\CommandLogWriter;
+use Ayaou\CommandLoggerBundle\Util\SupportedCommandResolver;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -56,13 +57,13 @@ class CommandErrorListenerTest extends TestCase
             $this->writer,
             $this->commandExecutionTracker,
             true, // Enabled by default
-            [],
+            new SupportedCommandResolver([]),
         );
     }
 
     public function testDoesNothingWhenDisabled(): void
     {
-        $listener = new CommandErrorListener($this->writer, $this->commandExecutionTracker, false, []);
+        $listener = new CommandErrorListener($this->writer, $this->commandExecutionTracker, false, new SupportedCommandResolver([]));
         $this->writer->expects($this->never())->method('markErrored');
 
         $listener->onConsoleError($this->event);
@@ -123,7 +124,7 @@ class CommandErrorListenerTest extends TestCase
             $this->writer,
             $this->commandExecutionTracker,
             true,
-            [],
+            new SupportedCommandResolver([]),
             100, // small limit to make the truncation easy to assert on
         );
 
@@ -157,7 +158,7 @@ class CommandErrorListenerTest extends TestCase
             $this->writer,
             $this->commandExecutionTracker,
             true,
-            [],
+            new SupportedCommandResolver([]),
             65535,
         );
 
@@ -217,9 +218,8 @@ class CommandErrorListenerTest extends TestCase
             $this->writer,
             $this->commandExecutionTracker,
             true,
-            [],
+            new SupportedCommandResolver([]),
             65535,
-            [],
             $logger,
         );
 
@@ -236,9 +236,8 @@ class CommandErrorListenerTest extends TestCase
             $this->writer,
             $this->commandExecutionTracker,
             true,
-            [],
+            new SupportedCommandResolver([]),
             65535,
-            [],
             null,
         );
 

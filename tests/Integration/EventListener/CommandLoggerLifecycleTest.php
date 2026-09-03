@@ -23,6 +23,7 @@ use Ayaou\CommandLoggerBundle\Tests\Unit\EventListener\TestCommandWithoutAttribu
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
 use Ayaou\CommandLoggerBundle\Util\CommandLogWriter;
 use Ayaou\CommandLoggerBundle\Util\SensitiveParameterRedactor;
+use Ayaou\CommandLoggerBundle\Util\SupportedCommandResolver;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Doctrine\Persistence\ManagerRegistry;
@@ -240,10 +241,11 @@ class CommandLoggerLifecycleTest extends AppKernelTestCase
     {
         $tracker = new CommandExecutionTracker();
         $writer = new CommandLogWriter($this->managerRegistry);
+        $resolver = new SupportedCommandResolver($otherCommands);
 
-        $startListener = new CommandStartListener($writer, $tracker, $enabled, $otherCommands, new SensitiveParameterRedactor([]));
-        $terminateListener = new CommandTerminateListener($writer, $tracker, $enabled, $otherCommands);
-        $errorListener = new CommandErrorListener($writer, $tracker, $enabled, $otherCommands);
+        $startListener = new CommandStartListener($writer, $tracker, $enabled, $resolver, new SensitiveParameterRedactor([]));
+        $terminateListener = new CommandTerminateListener($writer, $tracker, $enabled, $resolver);
+        $errorListener = new CommandErrorListener($writer, $tracker, $enabled, $resolver);
 
         $dispatcher = new EventDispatcher();
         $dispatcher->addListener(ConsoleEvents::COMMAND, [$startListener, 'onConsoleCommand']);
