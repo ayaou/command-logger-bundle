@@ -20,6 +20,7 @@ use Ayaou\CommandLoggerBundle\Util\SensitiveParameterRedactor;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Event\ConsoleCommandEvent;
 use Symfony\Component\Console\Input\InputInterface;
@@ -164,5 +165,89 @@ class CommandStartListenerTest extends TestCase
         $this->entityManager->expects($this->once())->method('flush');
 
         $this->listener->onConsoleCommand($this->event);
+    }
+
+    public function testPersistFailureDoesNotBreakTheCommand(): void
+    {
+        $this->input->method('getArguments')->willReturn([]);
+        $this->input->method('getOptions')->willReturn([]);
+
+        $this->entityManager->expects($this->once())->method('persist')
+            ->willThrowException(new \RuntimeException('Connection refused'));
+        $this->entityManager->expects($this->never())->method('flush');
+
+        $this->listener->onConsoleCommand($this->event);
+
+        // Reaching this line proves the exception raised by persist() never propagated out.
+        $this->addToAssertionCount(1);
+    }
+
+    public function testFlushFailureDoesNotBreakTheCommand(): void
+    {
+        $this->input->method('getArguments')->willReturn([]);
+        $this->input->method('getOptions')->willReturn([]);
+
+        $this->entityManager->expects($this->once())->method('persist');
+        $this->entityManager->expects($this->once())->method('flush')
+            ->willThrowException(new \RuntimeException('Connection lost'));
+
+        $this->listener->onConsoleCommand($this->event);
+
+        // Reaching this line proves the exception raised by flush() never propagated out.
+        $this->addToAssertionCount(1);
+    }
+
+    public function testLogsErrorWithCommandNameWhenPersistFails(): void
+    {
+        $this->input->method('getArguments')->willReturn([]);
+        $this->input->method('getOptions')->willReturn([]);
+
+        $this->entityManager->method('persist')
+            ->willThrowException(new \RuntimeException('Connection refused'));
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('error')
+            ->with(
+                $this->stringContains('app:my-command'),
+                $this->callback(function (array $context) {
+                    return 'app:my-command' === ($context['command'] ?? null)
+                        && ($context['exception'] ?? null) instanceof \Throwable;
+                }),
+            );
+
+        $listener = new CommandStartListener(
+            $this->entityManager,
+            $this->commandExecutionTracker,
+            true,
+            [],
+            new SensitiveParameterRedactor([]),
+            [],
+            $logger,
+        );
+
+        $listener->onConsoleCommand($this->event);
+    }
+
+    public function testDoesNotBreakWhenNoLoggerIsConfigured(): void
+    {
+        $this->input->method('getArguments')->willReturn([]);
+        $this->input->method('getOptions')->willReturn([]);
+
+        $this->entityManager->method('persist')
+            ->willThrowException(new \RuntimeException('Connection refused'));
+
+        $listener = new CommandStartListener(
+            $this->entityManager,
+            $this->commandExecutionTracker,
+            true,
+            [],
+            new SensitiveParameterRedactor([]),
+            [],
+            null,
+        );
+
+        $listener->onConsoleCommand($this->event);
+
+        $this->addToAssertionCount(1);
     }
 }

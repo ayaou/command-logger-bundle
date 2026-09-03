@@ -75,6 +75,23 @@ The logs are stored in the `command_log` table with the following fields:
 - `errorMessage` – Error message if applicable
 - `executionToken` – Unique identifier for execution tracking
 
+## Failure Behavior
+The bundle never lets its own storage break the command it is logging. If writing to the
+`command_log` table fails for any reason — the table doesn't exist yet, the database is
+unreachable, the entity manager was already closed by a previous error — the listener gives up on
+that write and lets the command carry on (or, for the error listener, lets the original exception
+propagate to the user unchanged).
+
+When this happens, an `error` is emitted on the application's `logger` service (if one is
+configured), naming the command and including the underlying exception. If no `logger` service is
+available, the bundle stays silent and the command is unaffected either way.
+
+The level is `error`, not `warning`, for two reasons. A log entry that could not be written is a
+runtime error in PSR-3 terms, not an exceptional-but-benign occurrence. And Symfony's fallback
+logger — the one an application without Monolog gets — only emits `error` and above, so a warning
+would have been dropped on exactly the bare setups where a silent empty table is hardest to
+diagnose.
+
 ## Show Command Logs
 The `command-logger:show` command displays logged command executions from the `command_log` table. It supports filtering, pagination, and viewing specific entries by ID.
 

@@ -16,6 +16,7 @@ namespace Ayaou\CommandLoggerBundle\EventListener\CommandLogger;
 use Ayaou\CommandLoggerBundle\Entity\CommandLog;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Event\ConsoleTerminateEvent;
 
 class CommandTerminateListener extends AbstractCommandListener
@@ -36,6 +37,8 @@ class CommandTerminateListener extends AbstractCommandListener
      */
     private array $attributedCommands;
 
+    private ?LoggerInterface $logger;
+
     /**
      * @param array<int|string, string> $otherCommands
      * @param array<int, string>        $attributedCommands names (and aliases) collected at
@@ -47,12 +50,14 @@ class CommandTerminateListener extends AbstractCommandListener
         bool $enabled,
         array $otherCommands = [],
         array $attributedCommands = [],
+        ?LoggerInterface $logger = null,
     ) {
         $this->entityManager = $entityManager;
         $this->commandExecutionTracker = $commandExecutionTracker;
         $this->enabled = $enabled;
         $this->otherCommands = $otherCommands;
         $this->attributedCommands = $attributedCommands;
+        $this->logger = $logger;
     }
 
     public function onConsoleTerminate(ConsoleTerminateEvent $event): void
@@ -73,16 +78,25 @@ class CommandTerminateListener extends AbstractCommandListener
         $startTimestamp = $this->commandExecutionTracker->getStartTimestamp($command);
         $durationMs = null !== $startTimestamp ? intdiv(hrtime(true) - $startTimestamp, 1_000_000) : null;
 
-        $log = $this->entityManager->getRepository(CommandLog::class)
-            ->findOneBy(['executionToken' => $executionToken]);
+        try {
+            $log = $this->entityManager->getRepository(CommandLog::class)
+                ->findOneBy(['executionToken' => $executionToken]);
 
-        if ($log) {
-            $log->setEndTime(new \DateTimeImmutable())
-                ->setExitCode($event->getExitCode())
-                ->setDurationMs($durationMs);
+            if ($log) {
+                $log->setEndTime(new \DateTimeImmutable())
+                    ->setExitCode($event->getExitCode())
+                    ->setDurationMs($durationMs);
 
-            $this->entityManager->persist($log);
-            $this->entityManager->flush();
+                $this->entityManager->persist($log);
+                $this->entityManager->flush();
+            }
+        } catch (\Throwable $exception) {
+            // A logging failure must never take the user's command down with it: give up on
+            // writing this entry and let the command run its course.
+            $this->logger?->error(
+                sprintf('Command logger bundle failed to log the termination of command "%s".', $command->getName()),
+                ['command' => $command->getName(), 'exception' => $exception],
+            );
         }
 
         $this->commandExecutionTracker->clearToken($command);
