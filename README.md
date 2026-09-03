@@ -38,6 +38,9 @@ command_logger:
     - auth
   max_error_message_length: 65535  # Maximum byte length of the stored error message; longer messages are truncated (multi-byte safe) and suffixed with " [truncated]" (default: 65535, minimum: 100)
   entity_manager: ~    # Name of the Doctrine entity manager the command_log table lives in. Null (default) targets the default entity manager. See "Using a Separate Entity Manager" below.
+  output_capture:
+    enabled: false     # Store what a watched command printed. Disabled by default. See "Capturing Command Output" below.
+    max_length: 16384  # Maximum byte length of the captured output, and the exact upper bound on the memory this holds during a run (default: 16384, minimum: 100)
 ```
 
 ## Usage
@@ -74,6 +77,7 @@ The logs are stored in the `command_log` table with the following fields:
 - `exitCode` – Command exit code
 - `durationMs` – Execution duration in milliseconds, or `null` when unknown (see "Command Execution Statistics" below)
 - `errorMessage` – Error message if applicable
+- `output` – What the command printed, or `null` unless output capture is enabled (see "Capturing Command Output" below)
 - `executionToken` – Unique identifier for execution tracking
 
 ## Using a Separate Entity Manager
@@ -125,6 +129,76 @@ Two consequences follow from this, both intentional:
   rollback of whatever the application itself was doing. That is precisely the point of moving it
   to a separate database: an execution log should still exist even when the command it describes
   failed and rolled back its own changes.
+
+## Capturing Command Output
+
+By default a log row tells you whether a command succeeded, not what it said while doing
+so. Turn on output capture and the row carries the command's own output next to its exit
+code:
+
+```yaml
+# config/packages/command_logger.yaml
+command_logger:
+  output_capture:
+    enabled: true
+    max_length: 16384
+```
+
+```
+$ bin/console app:load
+ [OK] 3 products loaded
+
+$ bin/console command-logger:show --id=5
+ID: 5
+Command: app:load
+Exit Code: 0
+...
+
+Output:
+ [OK] 3 products loaded
+```
+
+The captured output is also exposed on the API's item endpoint, in the `command_log:item`
+serialization group.
+
+### Why it is off by default
+
+A command may print anything, and that includes secrets. The `sensitive_parameters`
+redaction works on argument and option *names*; nothing can reliably recognise a secret
+inside free-form prose. Storing output is therefore a decision you make explicitly, for
+commands whose output you know.
+
+### What it costs the observed command
+
+Nothing while disabled: no stream filter is registered and no stream is touched.
+
+While enabled, the cost is one bounded string append per write:
+
+| | without capture | with capture |
+|---|---|---|
+| a 500-line command | 0.367 ms | 0.640 ms |
+| a 100,000-line command | 77 ms | 132 ms |
+
+Memory is bounded by `max_length` and by nothing else. Once that many bytes have been
+captured, nothing further is retained and the stored value is suffixed with
+`" [truncated]"` - so a command printing a gigabyte costs exactly what one printing a
+kilobyte costs.
+
+### What it captures, and what it does not
+
+Capture works by observing the stream behind the command's output, so:
+
+- **stdout and stderr** written through Symfony's `OutputInterface` are captured -
+  including everything `SymfonyStyle` produces.
+- **`echo`, `print` and PHP warnings are not.** They go through PHP's own output layer,
+  which stream filters never see.
+- **Outputs with no stream behind them are left alone** - `NullOutput` and
+  `BufferedOutput` capture nothing, and are not disturbed.
+- **A command killed before it terminates leaves `output` null**, exactly as it leaves
+  `endTime` and `exitCode` null: nothing runs to store what it had printed so far.
+- **Escape sequences are stripped** before storage. Colours are not preserved, on purpose:
+  the value is replayed later by `command-logger:show` and by the API, and a stored escape
+  sequence is an instruction for whichever terminal renders it.
 
 ## Failure Behavior
 The bundle never lets its own storage break the command it is logging. If writing to the
