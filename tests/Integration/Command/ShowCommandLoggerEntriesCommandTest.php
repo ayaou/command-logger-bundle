@@ -274,6 +274,46 @@ class ShowCommandLoggerEntriesCommandTest extends AppKernelTestCase
         $this->assertEquals(0, $this->commandTester->getStatusCode());
     }
 
+    public function testSingleEntryViewShowsTheCapturedOutput(): void
+    {
+        $entry = $this->createCommandLog(1, 'app:load', 0, '550e8400-e29b-41d4-a716-446655440001');
+        $entry->setOutput("[OK] 3 products loaded\n");
+        $this->entityManager->flush();
+
+        $this->commandTester->execute(['--id' => 1]);
+
+        $output = $this->commandTester->getDisplay();
+
+        $this->assertStringContainsString('Output:', $output);
+        $this->assertStringContainsString('[OK] 3 products loaded', $output);
+        $this->assertEquals(0, $this->commandTester->getStatusCode());
+    }
+
+    public function testSingleEntryViewOmitsTheOutputBlockWhenNothingWasCaptured(): void
+    {
+        $this->createCommandLog(1, 'app:load', 0, '550e8400-e29b-41d4-a716-446655440002');
+        $this->entityManager->flush();
+
+        $this->commandTester->execute(['--id' => 1]);
+
+        $this->assertStringNotContainsString('Output:', $this->commandTester->getDisplay());
+    }
+
+    /**
+     * A command is free to print angle brackets. Replayed unescaped they would be read as
+     * console markup here, so what is shown would no longer be what the command printed.
+     */
+    public function testCapturedOutputIsShownLiterallyRatherThanAsConsoleMarkup(): void
+    {
+        $entry = $this->createCommandLog(1, 'app:load', 0, '550e8400-e29b-41d4-a716-446655440003');
+        $entry->setOutput('parsed <fg=red>value</> from config');
+        $this->entityManager->flush();
+
+        $this->commandTester->execute(['--id' => 1]);
+
+        $this->assertStringContainsString('parsed <fg=red>value</> from config', $this->commandTester->getDisplay());
+    }
+
     public function testExecuteSingleEntryViewWithInvalidId(): void
     {
         // No data created
