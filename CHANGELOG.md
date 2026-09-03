@@ -1,3 +1,16 @@
+# [1.8.0](https://github.com/ayaou/command-logger-bundle/compare/v1.7.1...v1.8.0) (2026-09-03)
+
+
+### Bug Fixes
+
+* **api:** correct pagination metadata and error responses ([4fa125e](https://github.com/ayaou/command-logger-bundle/commit/4fa125e0e6f468925a3264c3aa26d5a16cb81489))
+
+
+### Features
+
+* **api:** make the REST API opt-in, disabled by default ([2b296d4](https://github.com/ayaou/command-logger-bundle/commit/2b296d40612db09b47dfc8bbd9a99423ef169728))
+* **api:** make the REST API reachable and actually functional ([2ab7744](https://github.com/ayaou/command-logger-bundle/commit/2ab7744180360495f7c12bc03d2a1cb9ec3ca14d))
+
 ## [1.7.1](https://github.com/ayaou/command-logger-bundle/compare/v1.7.0...v1.7.1) (2026-09-02)
 
 
