@@ -25,11 +25,15 @@ use Symfony\Component\Serializer\Attribute\Groups;
 #[ORM\Index(fields: ['exitCode'])]
 class CommandLog
 {
+    // Doctrine assigns the identifier via reflection when hydrating this entity from the
+    // database, never through a typed PHP assignment PHPStan can see. That is a known
+    // friction point between the ORM and static analysis, so the resulting false positive
+    // is suppressed locally here rather than papered over with a repository-wide baseline.
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: 'integer')]
     #[Groups(['command_log:list', 'command_log:item'])]
-    private ?int $id = null;
+    private ?int $id = null; // @phpstan-ignore property.unusedType
 
     #[ORM\Column(type: 'string', length: 255)]
     #[Groups(['command_log:list', 'command_log:item'])]

@@ -27,6 +27,7 @@ class CommandStartListener extends AbstractCommandListener
     private CommandExecutionTracker $commandExecutionTracker;
 
     private bool $enabled;
+
     /**
      * @var array<int|string, string>
      */
@@ -42,7 +43,7 @@ class CommandStartListener extends AbstractCommandListener
     /**
      * @param array<int|string, string> $otherCommands
      * @param array<int, string>        $attributedCommands names (and aliases) collected at
-     *                                                       compile time by CommandLoggerPass
+     *                                                      compile time by CommandLoggerPass
      */
     public function __construct(
         EntityManagerInterface $entityManager,
@@ -79,6 +80,10 @@ class CommandStartListener extends AbstractCommandListener
         $this->commandExecutionTracker->setToken($command, $executionToken);
         $this->commandExecutionTracker->setStartTimestamp($command, hrtime(true));
 
+        // SensitiveParameterRedactor::redact() keeps a wider array<int|string, mixed> signature
+        // to stay reusable, but Console argument and option names are always strings - narrow
+        // the type back down here for the CommandLog::setArguments() call below.
+        /** @var array<string, mixed> $arguments */
         $arguments = $this->sensitiveParameterRedactor->redact($input->getArguments() + $input->getOptions());
 
         $log->setCommandName($commandName)
