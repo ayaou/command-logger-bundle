@@ -117,6 +117,26 @@ class JsonLdFactory
     }
 
     /**
+     * Builds a JSON-LD response wrapping a plain array the caller already built - a computed
+     * or aggregated payload with no entity behind it (statistics, for instance), as opposed to
+     * createItemResponse() which normalizes one. $data is merged in as-is, no serializer
+     * groups involved.
+     *
+     * @param array<string, mixed> $data
+     */
+    public function createArrayResponse(array $data, string $type, string $route): JsonResponse
+    {
+        $payload = [
+            '@context' => $this->getApiBasePath()."/contexts/$type",
+            '@id' => $this->urlGenerator->generate($route),
+            '@type' => $type,
+            ...$data,
+        ];
+
+        return new JsonResponse($payload);
+    }
+
+    /**
      * @param array<string> $groups
      *
      * @throws ExceptionInterface
