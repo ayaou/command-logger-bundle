@@ -1,3 +1,16 @@
+# [1.10.0](https://github.com/ayaou/command-logger-bundle/compare/v1.9.0...v1.10.0) (2026-09-03)
+
+
+### Bug Fixes
+
+* **command:** filter command-logger:show through the shared filter ([7893757](https://github.com/ayaou/command-logger-bundle/commit/7893757d63d4ae2de5f160529d824131b0b0602d))
+* **listener:** write log rows through DBAL, never through the unit of work ([929eb2d](https://github.com/ayaou/command-logger-bundle/commit/929eb2d42670dccf2527c19569782295f269f7cb))
+
+
+### Features
+
+* **config:** let the log live in a separate entity manager ([d6f8351](https://github.com/ayaou/command-logger-bundle/commit/d6f83511c2a60cf3664e7a803f9050bfc8f01eb8)), closes [#11](https://github.com/ayaou/command-logger-bundle/issues/11) [enqueue-dev#431](https://github.com/enqueue-dev/issues/431)
+
 # [1.9.0](https://github.com/ayaou/command-logger-bundle/compare/v1.8.0...v1.9.0) (2026-09-03)
 
 
