@@ -20,6 +20,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Event\ConsoleTerminateEvent;
 use Symfony\Component\Console\Input\InputInterface;
@@ -115,5 +116,100 @@ class CommandTerminateListenerTest extends TestCase
         $this->commandExecutionTracker->expects($this->once())->method('clearToken')->with($this->command);
 
         $this->listener->onConsoleTerminate($this->event);
+    }
+
+    public function testFindOneByFailureDoesNotBreakTheCommand(): void
+    {
+        $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn('some-token');
+        $this->repository->expects($this->once())->method('findOneBy')
+            ->willThrowException(new \RuntimeException('no such table: command_log'));
+        $this->entityManager->expects($this->never())->method('persist');
+
+        // The token must still be cleared: the write failed, but tracking state must not leak.
+        $this->commandExecutionTracker->expects($this->once())->method('clearToken')->with($this->command);
+
+        $this->listener->onConsoleTerminate($this->event);
+
+        $this->addToAssertionCount(1);
+    }
+
+    public function testPersistFailureDoesNotBreakTheCommand(): void
+    {
+        $log = new CommandLog();
+        $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn('some-token');
+        $this->repository->method('findOneBy')->willReturn($log);
+
+        $this->entityManager->expects($this->once())->method('persist')
+            ->willThrowException(new \RuntimeException('Connection refused'));
+        $this->entityManager->expects($this->never())->method('flush');
+        $this->commandExecutionTracker->expects($this->once())->method('clearToken')->with($this->command);
+
+        $this->listener->onConsoleTerminate($this->event);
+
+        $this->addToAssertionCount(1);
+    }
+
+    public function testFlushFailureDoesNotBreakTheCommand(): void
+    {
+        $log = new CommandLog();
+        $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn('some-token');
+        $this->repository->method('findOneBy')->willReturn($log);
+
+        $this->entityManager->expects($this->once())->method('persist');
+        $this->entityManager->expects($this->once())->method('flush')
+            ->willThrowException(new \RuntimeException('Connection lost'));
+        $this->commandExecutionTracker->expects($this->once())->method('clearToken')->with($this->command);
+
+        $this->listener->onConsoleTerminate($this->event);
+
+        $this->addToAssertionCount(1);
+    }
+
+    public function testLogsErrorWithCommandNameWhenLoggingFails(): void
+    {
+        $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn('some-token');
+        $this->repository->method('findOneBy')
+            ->willThrowException(new \RuntimeException('no such table: command_log'));
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('error')
+            ->with(
+                $this->stringContains('app:my-command'),
+                $this->callback(function (array $context) {
+                    return 'app:my-command' === ($context['command'] ?? null)
+                        && ($context['exception'] ?? null) instanceof \Throwable;
+                }),
+            );
+
+        $listener = new CommandTerminateListener(
+            $this->entityManager,
+            $this->commandExecutionTracker,
+            true,
+            [],
+            [],
+            $logger,
+        );
+
+        $listener->onConsoleTerminate($this->event);
+    }
+
+    public function testDoesNotBreakWhenNoLoggerIsConfigured(): void
+    {
+        $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn('some-token');
+        $this->repository->method('findOneBy')
+            ->willThrowException(new \RuntimeException('no such table: command_log'));
+
+        $listener = new CommandTerminateListener(
+            $this->entityManager,
+            $this->commandExecutionTracker,
+            true,
+            [],
+            [],
+            null,
+        );
+
+        $listener->onConsoleTerminate($this->event);
+
+        $this->addToAssertionCount(1);
     }
 }

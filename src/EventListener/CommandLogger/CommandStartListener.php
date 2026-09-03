@@ -17,6 +17,7 @@ use Ayaou\CommandLoggerBundle\Entity\CommandLog;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
 use Ayaou\CommandLoggerBundle\Util\SensitiveParameterRedactor;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Event\ConsoleCommandEvent;
 use Symfony\Component\Uid\Uuid;
 
@@ -40,6 +41,8 @@ class CommandStartListener extends AbstractCommandListener
      */
     private array $attributedCommands;
 
+    private ?LoggerInterface $logger;
+
     /**
      * @param array<int|string, string> $otherCommands
      * @param array<int, string>        $attributedCommands names (and aliases) collected at
@@ -52,6 +55,7 @@ class CommandStartListener extends AbstractCommandListener
         array $otherCommands,
         SensitiveParameterRedactor $sensitiveParameterRedactor,
         array $attributedCommands = [],
+        ?LoggerInterface $logger = null,
     ) {
         $this->entityManager = $entityManager;
         $this->commandExecutionTracker = $commandExecutionTracker;
@@ -59,6 +63,7 @@ class CommandStartListener extends AbstractCommandListener
         $this->otherCommands = $otherCommands;
         $this->sensitiveParameterRedactor = $sensitiveParameterRedactor;
         $this->attributedCommands = $attributedCommands;
+        $this->logger = $logger;
     }
 
     public function onConsoleCommand(ConsoleCommandEvent $event): void
@@ -91,7 +96,16 @@ class CommandStartListener extends AbstractCommandListener
             ->setStartTime(new \DateTimeImmutable())
             ->setExecutionToken($executionToken);
 
-        $this->entityManager->persist($log);
-        $this->entityManager->flush();
+        try {
+            $this->entityManager->persist($log);
+            $this->entityManager->flush();
+        } catch (\Throwable $exception) {
+            // A logging failure must never take the user's command down with it: give up on
+            // writing this entry and let the command run its course.
+            $this->logger?->error(
+                sprintf('Command logger bundle failed to log the start of command "%s".', $commandName),
+                ['command' => $commandName, 'exception' => $exception],
+            );
+        }
     }
 }

@@ -28,6 +28,7 @@ services:
       $enabled: '%command_logger.enabled%'
       $otherCommands: '%command_logger.commands%'
       $attributedCommands: '%command_logger.attributed_commands%'
+      $logger: '@?logger'
     tags:
       - { name: kernel.event_listener, event: console.command, method: onConsoleCommand }
 
@@ -37,6 +38,7 @@ services:
       $enabled: '%command_logger.enabled%'
       $otherCommands: '%command_logger.commands%'
       $attributedCommands: '%command_logger.attributed_commands%'
+      $logger: '@?logger'
     tags:
       - { name: kernel.event_listener, event: console.terminate, method: onConsoleTerminate }
 
@@ -47,6 +49,7 @@ services:
       $otherCommands: '%command_logger.commands%'
       $maxErrorMessageLength: '%command_logger.max_error_message_length%'
       $attributedCommands: '%command_logger.attributed_commands%'
+      $logger: '@?logger'
     tags:
       - { name: kernel.event_listener, event: console.error, method: onConsoleError }
 

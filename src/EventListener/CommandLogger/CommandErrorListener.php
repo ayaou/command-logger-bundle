@@ -16,6 +16,7 @@ namespace Ayaou\CommandLoggerBundle\EventListener\CommandLogger;
 use Ayaou\CommandLoggerBundle\Entity\CommandLog;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Event\ConsoleErrorEvent;
 
 class CommandErrorListener extends AbstractCommandListener
@@ -40,6 +41,8 @@ class CommandErrorListener extends AbstractCommandListener
      */
     private array $attributedCommands;
 
+    private ?LoggerInterface $logger;
+
     /**
      * @param array<int|string, string> $otherCommands
      * @param int                       $maxErrorMessageLength Maximum byte length of the stored error message
@@ -53,6 +56,7 @@ class CommandErrorListener extends AbstractCommandListener
         array $otherCommands = [],
         int $maxErrorMessageLength = 65535,
         array $attributedCommands = [],
+        ?LoggerInterface $logger = null,
     ) {
         $this->entityManager = $entityManager;
         $this->commandExecutionTracker = $commandExecutionTracker;
@@ -60,6 +64,7 @@ class CommandErrorListener extends AbstractCommandListener
         $this->otherCommands = $otherCommands;
         $this->maxErrorMessageLength = $maxErrorMessageLength;
         $this->attributedCommands = $attributedCommands;
+        $this->logger = $logger;
     }
 
     public function onConsoleError(ConsoleErrorEvent $event): void
@@ -75,15 +80,25 @@ class CommandErrorListener extends AbstractCommandListener
             return;
         }
 
-        $log = $this->entityManager->getRepository(CommandLog::class)
-            ->findOneBy(['executionToken' => $executionToken]);
+        try {
+            $log = $this->entityManager->getRepository(CommandLog::class)
+                ->findOneBy(['executionToken' => $executionToken]);
 
-        if ($log) {
-            $errorDetails = $this->getErrorDetails($event->getError());
-            $log->setErrorMessage($this->truncate(implode("\n\n\n", $errorDetails)));
+            if ($log) {
+                $errorDetails = $this->getErrorDetails($event->getError());
+                $log->setErrorMessage($this->truncate(implode("\n\n\n", $errorDetails)));
 
-            $this->entityManager->persist($log);
-            $this->entityManager->flush();
+                $this->entityManager->persist($log);
+                $this->entityManager->flush();
+            }
+        } catch (\Throwable $exception) {
+            // This runs while a business exception is being handled: never touch $event or the
+            // exception it carries here - only the write to the log table is given up on. The
+            // original exception must reach the user exactly as it would have without this bundle.
+            $this->logger?->error(
+                sprintf('Command logger bundle failed to log the error of command "%s".', $command->getName()),
+                ['command' => $command->getName(), 'exception' => $exception],
+            );
         }
     }
 
