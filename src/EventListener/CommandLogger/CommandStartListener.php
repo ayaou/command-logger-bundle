@@ -15,6 +15,7 @@ namespace Ayaou\CommandLoggerBundle\EventListener\CommandLogger;
 
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
 use Ayaou\CommandLoggerBundle\Util\CommandLogWriter;
+use Ayaou\CommandLoggerBundle\Util\OutputCapture;
 use Ayaou\CommandLoggerBundle\Util\SensitiveParameterRedactor;
 use Ayaou\CommandLoggerBundle\Util\SupportedCommandResolver;
 use Psr\Log\LoggerInterface;
@@ -36,6 +37,8 @@ class CommandStartListener
 
     private SensitiveParameterRedactor $sensitiveParameterRedactor;
 
+    private OutputCapture $outputCapture;
+
     private ?LoggerInterface $logger;
 
     public function __construct(
@@ -44,6 +47,7 @@ class CommandStartListener
         bool $enabled,
         SupportedCommandResolver $resolver,
         SensitiveParameterRedactor $sensitiveParameterRedactor,
+        OutputCapture $outputCapture,
         ?LoggerInterface $logger = null,
     ) {
         $this->writer = $writer;
@@ -51,6 +55,7 @@ class CommandStartListener
         $this->enabled = $enabled;
         $this->resolver = $resolver;
         $this->sensitiveParameterRedactor = $sensitiveParameterRedactor;
+        $this->outputCapture = $outputCapture;
         $this->logger = $logger;
     }
 
@@ -71,6 +76,11 @@ class CommandStartListener
 
         $this->commandExecutionTracker->setToken($command, $executionToken);
         $this->commandExecutionTracker->setStartTimestamp($command, hrtime(true));
+
+        // A no-op unless command_logger.output_capture.enabled is true. Deliberately outside
+        // the try/catch below: OutputCapture::start() swallows its own failures, because a
+        // throw here would reach the command instead of the logging code that caused it.
+        $this->outputCapture->start($event->getOutput());
 
         // SensitiveParameterRedactor::redact() keeps a wider array<int|string, mixed> signature
         // to stay reusable, but Console argument and option names are always strings - narrow

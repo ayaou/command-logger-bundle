@@ -22,6 +22,7 @@ use Ayaou\CommandLoggerBundle\Tests\Unit\EventListener\TestCommand;
 use Ayaou\CommandLoggerBundle\Tests\Unit\EventListener\TestCommandWithoutAttribute;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
 use Ayaou\CommandLoggerBundle\Util\CommandLogWriter;
+use Ayaou\CommandLoggerBundle\Util\OutputCapture;
 use Ayaou\CommandLoggerBundle\Util\SensitiveParameterRedactor;
 use Ayaou\CommandLoggerBundle\Util\SupportedCommandResolver;
 use Doctrine\ORM\EntityManagerInterface;
@@ -243,8 +244,8 @@ class CommandLoggerLifecycleTest extends AppKernelTestCase
         $writer = new CommandLogWriter($this->managerRegistry);
         $resolver = new SupportedCommandResolver($otherCommands);
 
-        $startListener = new CommandStartListener($writer, $tracker, $enabled, $resolver, new SensitiveParameterRedactor([]));
-        $terminateListener = new CommandTerminateListener($writer, $tracker, $enabled, $resolver);
+        $startListener = new CommandStartListener($writer, $tracker, $enabled, $resolver, new SensitiveParameterRedactor([]), new OutputCapture());
+        $terminateListener = new CommandTerminateListener($writer, $tracker, $enabled, $resolver, new OutputCapture());
         $errorListener = new CommandErrorListener($writer, $tracker, $enabled, $resolver);
 
         $dispatcher = new EventDispatcher();

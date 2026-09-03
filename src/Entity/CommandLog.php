@@ -71,6 +71,15 @@ class CommandLog
     #[Groups(['command_log:item'])]
     private ?string $errorMessage = null;
 
+    // Nullable, and null for most rows on purpose: capturing what a command printed is
+    // opt-in (command_logger.capture_output) because the output of an arbitrary command may
+    // contain secrets that no argument-name-based redaction can recognise. Rows written
+    // while capture was off, rows whose command wrote nothing, and rows whose process was
+    // killed before console.terminate, all stay null - see OutputCapture.
+    #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['command_log:item'])]
+    private ?string $output = null;
+
     #[ORM\Column(type: 'string', length: 36, unique: true)]
     #[Groups(['command_log:list', 'command_log:item'])]
     private ?string $executionToken = null;
@@ -166,6 +175,18 @@ class CommandLog
     public function setErrorMessage(?string $errorMessage): self
     {
         $this->errorMessage = $errorMessage;
+
+        return $this;
+    }
+
+    public function getOutput(): ?string
+    {
+        return $this->output;
+    }
+
+    public function setOutput(?string $output): self
+    {
+        $this->output = $output;
 
         return $this;
     }

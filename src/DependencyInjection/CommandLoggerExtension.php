@@ -32,6 +32,8 @@ class CommandLoggerExtension extends Extension implements PrependExtensionInterf
         $container->setParameter('command_logger.sensitive_parameters', $processedConfig['sensitive_parameters']);
         $container->setParameter('command_logger.max_error_message_length', $processedConfig['max_error_message_length']);
         $container->setParameter('command_logger.entity_manager', $processedConfig['entity_manager']);
+        $container->setParameter('command_logger.output_capture.enabled', $processedConfig['output_capture']['enabled']);
+        $container->setParameter('command_logger.output_capture.max_length', $processedConfig['output_capture']['max_length']);
 
         // Default value for the parameter that CommandLoggerPass populates at compile time
         // (see CommandLoggerBundle::build()). It must exist here already: services.yaml
