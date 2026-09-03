@@ -224,20 +224,29 @@ security:
 
 ### Endpoints
 
-| Method | Path                 | Description                                                          |
-|--------|----------------------|------------------------------------------------------------------------|
-| `GET`  | `/command-logs`      | Paginated, filterable collection of command logs (JSON-LD Hydra collection). |
-| `GET`  | `/command-logs/{id}` | A single command log, looked up by its numeric `id` or its `executionToken`. |
+| Method | Path                    | Description                                                          |
+|--------|-------------------------|------------------------------------------------------------------------|
+| `GET`  | `/command-logs`         | Paginated, filterable collection of command logs (JSON-LD Hydra collection). |
+| `GET`  | `/command-logs/stats`   | Aggregate statistics (summary, exit code breakdown, per-command breakdown) over the same filterable set of logs. |
+| `GET`  | `/command-logs/{id}`    | A single command log, looked up by its numeric `id` or its `executionToken`. |
 
 Route names are prefixed with `command_logger_api_` (e.g. `command_logger_api_list`,
-`command_logger_api_item`), following Symfony's naming convention for bundle-provided routes.
+`command_logger_api_stats`, `command_logger_api_item`), following Symfony's naming convention for
+bundle-provided routes.
+
+Like the rest of this REST API, `/command-logs/stats` exposes exactly the same aggregated data as
+the `command-logger:stats` CLI command and the log list above — it stays behind the same
+`command_logger.api.enabled` flag and the same security warning at the top of this section: put
+your own `access_control` rule in place before enabling it.
 
 ### Query parameters
 
-All parameters below apply to `GET /command-logs` and can be combined, unless stated otherwise.
+The parameters below apply to both `GET /command-logs` and `GET /command-logs/stats`, and can be
+combined, unless stated otherwise. On `/command-logs/stats`, `page` is not used (there is nothing
+to paginate) and `limit` instead caps how many commands appear in the per-command breakdown.
 
-* `page` (optional, integer, default `1`) — Page number to return; must be positive.
-* `limit` (optional, integer, default `10`) — Number of entries per page; must be between `1` and `100`.
+* `page` (optional, integer, default `1`) — Page number to return; must be positive. Ignored by `/stats`.
+* `limit` (optional, integer, default `10`) — Number of entries per page; must be between `1` and `100`. On `/stats`, the number of commands returned in the per-command breakdown.
 * `name` (optional, string, minimum length `2`) — Filters logs whose command name contains this value.
 * `status` (optional, string, one of `success` or `error`) — Filters by outcome. Cannot be combined with `code`.
 * `code` (optional, integer) — Filters by exact exit code. Cannot be combined with `status`.
@@ -248,6 +257,48 @@ Invalid or conflicting parameters return `422 Unprocessable Entity` with a
 [Problem Details](https://www.rfc-editor.org/rfc/rfc9457) (`application/problem+json`) body listing
 the offending `violations`, each with its `propertyPath`. Unknown ids return `404 Not Found` in the
 same Problem Details format.
+
+### Statistics response
+
+`GET /command-logs/stats` wraps the same figures as the `command-logger:stats` CLI command in a
+JSON-LD envelope: a `summary` (volume by outcome, failure rate, duration extrema), a `byExitCode`
+breakdown, and a `byCommand` breakdown bounded by `limit`.
+
+```json
+{
+    "@context": "/contexts/CommandLogStatistics",
+    "@id": "/command-logs/stats",
+    "@type": "CommandLogStatistics",
+    "summary": {
+        "total": 42,
+        "successCount": 39,
+        "failureCount": 3,
+        "unfinishedCount": 0,
+        "failureRate": 0.0714,
+        "durationMs": {
+            "avg": 182.4,
+            "min": 12,
+            "max": 950,
+            "count": 42
+        }
+    },
+    "byExitCode": {
+        "0": 39,
+        "1": 3
+    },
+    "byCommand": [
+        {
+            "commandName": "app:example",
+            "total": 20,
+            "successCount": 19,
+            "failureCount": 1,
+            "unfinishedCount": 0,
+            "failureRate": 0.05,
+            "durationMs": { "avg": 150.2, "min": 20, "max": 400, "count": 20 }
+        }
+    ]
+}
+```
 
 ## License
 MIT License

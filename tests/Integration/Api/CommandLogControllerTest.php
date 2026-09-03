@@ -210,13 +210,153 @@ class CommandLogControllerTest extends AppKernelTestCase
         $this->assertSame('app:example', $payload['hydra:member'][0]['commandName']);
     }
 
-    private function persistLog(string $commandName, int $exitCode, string $token): CommandLog
+    /**
+     * The route /{id} in item() carries no format constraint on {id}. Declaring stats()
+     * after item() would let "/command-logs/stats" be captured as item(id: 'stats') instead,
+     * silently returning 404 (findOneByIdOrToken('stats') matches nothing) rather than the
+     * statistics payload. This test is the guard against that regression: it fails loudly if
+     * stats() is ever reordered (or re-declared) after item().
+     */
+    public function testStatsPathIsNotSwallowedByItemRoute(): void
+    {
+        $response = $this->httpKernel->handle(Request::create('/command-logs/stats'));
+
+        $this->assertSame(200, $response->getStatusCode());
+
+        $payload = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame('CommandLogStatistics', $payload['@type']);
+        $this->assertArrayHasKey('summary', $payload);
+    }
+
+    public function testStatsReturns200WithSummaryByExitCodeAndByCommandBreakdown(): void
+    {
+        $this->persistLog('app:example', 0, 'token-a', 100);
+        $this->persistLog('app:example', 1, 'token-b', 300);
+        $this->persistLog('app:other', 0, 'token-c', 200);
+
+        $response = $this->httpKernel->handle(Request::create('/command-logs/stats'));
+
+        $this->assertSame(200, $response->getStatusCode());
+
+        $payload = json_decode((string) $response->getContent(), true);
+
+        $summary = $payload['summary'];
+        $this->assertSame(3, $summary['total']);
+        $this->assertSame(2, $summary['successCount']);
+        $this->assertSame(1, $summary['failureCount']);
+        $this->assertSame(0, $summary['unfinishedCount']);
+        $this->assertEqualsWithDelta(1 / 3, $summary['failureRate'], 0.0001);
+        // A whole-number float (200.0) is encoded by json_encode() as "200", with no
+        // fractional part, so it comes back from json_decode() as an int: compare
+        // numerically rather than with assertSame(), which would fail on the type alone.
+        $this->assertEqualsWithDelta(200.0, $summary['durationMs']['avg'], 0.001);
+        $this->assertSame(100, $summary['durationMs']['min']);
+        $this->assertSame(300, $summary['durationMs']['max']);
+        $this->assertSame(3, $summary['durationMs']['count']);
+
+        $this->assertSame(2, $payload['byExitCode'][0]);
+        $this->assertSame(1, $payload['byExitCode'][1]);
+
+        $this->assertCount(2, $payload['byCommand']);
+        $this->assertSame('app:example', $payload['byCommand'][0]['commandName']);
+        $this->assertSame(2, $payload['byCommand'][0]['total']);
+    }
+
+    public function testStatsFiltersByCommandName(): void
+    {
+        $this->persistLog('app:example', 0, 'token-a', 100);
+        $this->persistLog('app:other', 0, 'token-b', 200);
+
+        $response = $this->httpKernel->handle(Request::create('/command-logs/stats', 'GET', ['name' => 'example']));
+
+        $this->assertSame(200, $response->getStatusCode());
+
+        $payload = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(1, $payload['summary']['total']);
+        $this->assertCount(1, $payload['byCommand']);
+        $this->assertSame('app:example', $payload['byCommand'][0]['commandName']);
+    }
+
+    public function testStatsFiltersByStatus(): void
+    {
+        $this->persistLog('app:example', 0, 'token-a', 100);
+        $this->persistLog('app:example', 1, 'token-b', 300);
+
+        $response = $this->httpKernel->handle(Request::create('/command-logs/stats', 'GET', ['status' => 'error']));
+
+        $this->assertSame(200, $response->getStatusCode());
+
+        $payload = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(1, $payload['summary']['total']);
+        $this->assertSame(1, $payload['summary']['failureCount']);
+        $this->assertSame(0, $payload['summary']['successCount']);
+    }
+
+    public function testStatsReturns422ForInvalidFilter(): void
+    {
+        $response = $this->httpKernel->handle(Request::create('/command-logs/stats', 'GET', ['status' => 'nimportequoi']));
+
+        $this->assertSame(422, $response->getStatusCode());
+        $this->assertSame('application/problem+json', $response->headers->get('Content-Type'));
+
+        $payload = json_decode((string) $response->getContent(), true);
+
+        $this->assertNotEmpty($payload['violations']);
+        $this->assertSame('status', $payload['violations'][0]['propertyPath']);
+    }
+
+    public function testStatsReturns405ForUnsupportedMethod(): void
+    {
+        $response = $this->httpKernel->handle(Request::create('/command-logs/stats', 'POST'));
+
+        $this->assertSame(405, $response->getStatusCode());
+        $this->assertSame('application/problem+json', $response->headers->get('Content-Type'));
+    }
+
+    public function testStatsOnEmptyTableReturnsZeroesWithoutDivisionByZero(): void
+    {
+        $response = $this->httpKernel->handle(Request::create('/command-logs/stats'));
+
+        $this->assertSame(200, $response->getStatusCode());
+
+        $payload = json_decode((string) $response->getContent(), true);
+
+        $summary = $payload['summary'];
+        $this->assertSame(0, $summary['total']);
+        $this->assertSame(0, $summary['successCount']);
+        $this->assertSame(0, $summary['failureCount']);
+        $this->assertSame(0, $summary['unfinishedCount']);
+        // Same whole-number float caveat as durationMs.avg above: 0.0 round-trips through
+        // JSON as an int 0.
+        $this->assertEqualsWithDelta(0.0, $summary['failureRate'], 0.001);
+        $this->assertNull($summary['durationMs']['avg']);
+        $this->assertNull($summary['durationMs']['min']);
+        $this->assertNull($summary['durationMs']['max']);
+        $this->assertSame(0, $summary['durationMs']['count']);
+        $this->assertSame([], $payload['byExitCode']);
+        $this->assertSame([], $payload['byCommand']);
+    }
+
+    /**
+     * $durationMs mirrors CommandTerminateListener: endTime, exitCode and durationMs are only
+     * ever set together, once execution has finished. Leaving it null keeps the log
+     * "unfinished" (endTime still null), exactly like a real in-flight command.
+     */
+    private function persistLog(string $commandName, int $exitCode, string $token, ?int $durationMs = null): CommandLog
     {
         $log = new CommandLog();
         $log->setCommandName($commandName)
             ->setStartTime(new \DateTimeImmutable('-1 day'))
             ->setExitCode($exitCode)
             ->setExecutionToken($token);
+
+        if (null !== $durationMs) {
+            $log->setEndTime(new \DateTimeImmutable())
+                ->setDurationMs($durationMs);
+        }
 
         $this->entityManager->persist($log);
         $this->entityManager->flush();

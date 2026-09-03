@@ -58,6 +58,33 @@ class CommandLogController extends AbstractController
         );
     }
 
+    // Declared before item() on purpose. Attribute routes are registered in method
+    // declaration order, and item()'s "/{id}" carries no format constraint on {id} - if this
+    // method were declared after item(), "/command-logs/stats" would be captured by "/{id}"
+    // first (findOneByIdOrToken('stats') matches nothing, so it would 404 instead of
+    // returning statistics). See testStatsPathIsNotSwallowedByItemRoute().
+    #[Route('/stats', name: 'stats', methods: ['GET'])]
+    public function stats(
+        #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)]
+        CommandLogFilter $filter = new CommandLogFilter(),
+    ): JsonResponse {
+        $statistics = $this->repository->getStatistics($filter);
+        $byCommand = $this->repository->getStatisticsByCommand($filter, $filter->limit);
+
+        $summary = $statistics;
+        unset($summary['byExitCode']);
+
+        return $this->jsonLdFactory->createArrayResponse(
+            [
+                'summary' => $summary,
+                'byExitCode' => $statistics['byExitCode'],
+                'byCommand' => $byCommand,
+            ],
+            'CommandLogStatistics',
+            'command_logger_api_stats'
+        );
+    }
+
     #[Route('/{id}', name: 'item', methods: ['GET'])]
     public function item(string $id): JsonResponse
     {
