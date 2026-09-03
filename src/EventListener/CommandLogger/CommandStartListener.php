@@ -13,17 +13,19 @@ declare(strict_types=1);
 
 namespace Ayaou\CommandLoggerBundle\EventListener\CommandLogger;
 
-use Ayaou\CommandLoggerBundle\Entity\CommandLog;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
+use Ayaou\CommandLoggerBundle\Util\CommandLogWriter;
 use Ayaou\CommandLoggerBundle\Util\SensitiveParameterRedactor;
-use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Event\ConsoleCommandEvent;
 use Symfony\Component\Uid\Uuid;
 
+/**
+ * @internal
+ */
 class CommandStartListener extends AbstractCommandListener
 {
-    private EntityManagerInterface $entityManager;
+    private CommandLogWriter $writer;
 
     private CommandExecutionTracker $commandExecutionTracker;
 
@@ -49,7 +51,7 @@ class CommandStartListener extends AbstractCommandListener
      *                                                      compile time by CommandLoggerPass
      */
     public function __construct(
-        EntityManagerInterface $entityManager,
+        CommandLogWriter $writer,
         CommandExecutionTracker $commandExecutionTracker,
         bool $enabled,
         array $otherCommands,
@@ -57,7 +59,7 @@ class CommandStartListener extends AbstractCommandListener
         array $attributedCommands = [],
         ?LoggerInterface $logger = null,
     ) {
-        $this->entityManager = $entityManager;
+        $this->writer = $writer;
         $this->commandExecutionTracker = $commandExecutionTracker;
         $this->enabled = $enabled;
         $this->otherCommands = $otherCommands;
@@ -79,7 +81,6 @@ class CommandStartListener extends AbstractCommandListener
         }
 
         $input = $event->getInput();
-        $log = new CommandLog();
         $executionToken = Uuid::v7()->toRfc4122();
 
         $this->commandExecutionTracker->setToken($command, $executionToken);
@@ -87,18 +88,12 @@ class CommandStartListener extends AbstractCommandListener
 
         // SensitiveParameterRedactor::redact() keeps a wider array<int|string, mixed> signature
         // to stay reusable, but Console argument and option names are always strings - narrow
-        // the type back down here for the CommandLog::setArguments() call below.
+        // the type back down here for the CommandLogWriter::create() call below.
         /** @var array<string, mixed> $arguments */
         $arguments = $this->sensitiveParameterRedactor->redact($input->getArguments() + $input->getOptions());
 
-        $log->setCommandName($commandName)
-            ->setArguments($arguments)
-            ->setStartTime(new \DateTimeImmutable())
-            ->setExecutionToken($executionToken);
-
         try {
-            $this->entityManager->persist($log);
-            $this->entityManager->flush();
+            $this->writer->create($commandName, $arguments, new \DateTimeImmutable(), $executionToken);
         } catch (\Throwable $exception) {
             // A logging failure must never take the user's command down with it: give up on
             // writing this entry and let the command run its course.

@@ -19,6 +19,7 @@ use Ayaou\CommandLoggerBundle\EventListener\CommandLogger\CommandStartListener;
 use Ayaou\CommandLoggerBundle\Tests\Integration\AppKernelTestCase;
 use Ayaou\CommandLoggerBundle\Tests\Unit\EventListener\TestCommand;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
+use Ayaou\CommandLoggerBundle\Util\CommandLogWriter;
 use Ayaou\CommandLoggerBundle\Util\SensitiveParameterRedactor;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
@@ -103,8 +104,9 @@ class CommandLoggerRedactionAndTruncationTest extends AppKernelTestCase
         $output = new BufferedOutput();
 
         $dispatcher = new EventDispatcher();
-        $startListener = new CommandStartListener($this->entityManager, $tracker, true, [], new SensitiveParameterRedactor([]));
-        $errorListener = new CommandErrorListener($this->entityManager, $tracker, true, [], 100);
+        $writer = new CommandLogWriter($this->entityManager);
+        $startListener = new CommandStartListener($writer, $tracker, true, [], new SensitiveParameterRedactor([]));
+        $errorListener = new CommandErrorListener($writer, $tracker, true, [], 100);
         $dispatcher->addListener(ConsoleEvents::COMMAND, [$startListener, 'onConsoleCommand']);
         $dispatcher->addListener(ConsoleEvents::ERROR, [$errorListener, 'onConsoleError']);
 
@@ -128,8 +130,9 @@ class CommandLoggerRedactionAndTruncationTest extends AppKernelTestCase
         $output = new BufferedOutput();
 
         $dispatcher = new EventDispatcher();
-        $startListener = new CommandStartListener($this->entityManager, $tracker, true, [], new SensitiveParameterRedactor([]));
-        $errorListener = new CommandErrorListener($this->entityManager, $tracker, true, [], 65535);
+        $writer = new CommandLogWriter($this->entityManager);
+        $startListener = new CommandStartListener($writer, $tracker, true, [], new SensitiveParameterRedactor([]));
+        $errorListener = new CommandErrorListener($writer, $tracker, true, [], 65535);
         $dispatcher->addListener(ConsoleEvents::COMMAND, [$startListener, 'onConsoleCommand']);
         $dispatcher->addListener(ConsoleEvents::ERROR, [$errorListener, 'onConsoleError']);
 
@@ -153,7 +156,7 @@ class CommandLoggerRedactionAndTruncationTest extends AppKernelTestCase
     {
         $tracker = new CommandExecutionTracker();
         $redactor = new SensitiveParameterRedactor($sensitiveParameters);
-        $startListener = new CommandStartListener($this->entityManager, $tracker, true, [], $redactor);
+        $startListener = new CommandStartListener(new CommandLogWriter($this->entityManager), $tracker, true, [], $redactor);
 
         $definition = new InputDefinition(array_map(
             static fn (string $name) => new InputOption($name, null, InputOption::VALUE_REQUIRED),

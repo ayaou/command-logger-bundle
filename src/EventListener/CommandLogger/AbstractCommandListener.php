@@ -16,6 +16,9 @@ namespace Ayaou\CommandLoggerBundle\EventListener\CommandLogger;
 use Ayaou\CommandLoggerBundle\Attribute\CommandLogger;
 use Symfony\Component\Console\Command\Command;
 
+/**
+ * @internal
+ */
 class AbstractCommandListener
 {
     /**

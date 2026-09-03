@@ -13,11 +13,10 @@ declare(strict_types=1);
 
 namespace Ayaou\CommandLoggerBundle\Tests\Unit\EventListener;
 
-use Ayaou\CommandLoggerBundle\Entity\CommandLog;
 use Ayaou\CommandLoggerBundle\EventListener\CommandLogger\CommandStartListener;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
+use Ayaou\CommandLoggerBundle\Util\CommandLogWriter;
 use Ayaou\CommandLoggerBundle\Util\SensitiveParameterRedactor;
-use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -31,7 +30,7 @@ class CommandStartListenerTest extends TestCase
 {
     private CommandStartListener $listener;
 
-    private MockObject|EntityManagerInterface $entityManager;
+    private MockObject|CommandLogWriter $writer;
 
     private MockObject|CommandExecutionTracker $commandExecutionTracker;
 
@@ -45,7 +44,7 @@ class CommandStartListenerTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->entityManager = $this->createMock(EntityManagerInterface::class);
+        $this->writer = $this->createMock(CommandLogWriter::class);
         $this->commandExecutionTracker = $this->createMock(CommandExecutionTracker::class);
         $this->command = new TestCommand();
         $this->input = $this->createMock(InputInterface::class);
@@ -53,7 +52,7 @@ class CommandStartListenerTest extends TestCase
         $this->event = new ConsoleCommandEvent($this->command, $this->input, $this->output);
 
         $this->listener = new CommandStartListener(
-            $this->entityManager,
+            $this->writer,
             $this->commandExecutionTracker,
             true, // Enabled by default
             [],
@@ -63,8 +62,8 @@ class CommandStartListenerTest extends TestCase
 
     public function testDoesNothingWhenDisabled(): void
     {
-        $listener = new CommandStartListener($this->entityManager, $this->commandExecutionTracker, false, [], new SensitiveParameterRedactor([]));
-        $this->entityManager->expects($this->never())->method('persist');
+        $listener = new CommandStartListener($this->writer, $this->commandExecutionTracker, false, [], new SensitiveParameterRedactor([]));
+        $this->writer->expects($this->never())->method('create');
         $this->commandExecutionTracker->expects($this->never())->method('setToken');
 
         $listener->onConsoleCommand($this->event);
@@ -75,8 +74,8 @@ class CommandStartListenerTest extends TestCase
         $command = new TestCommandWithoutAttribute();
         $this->event = new ConsoleCommandEvent($command, $this->input, $this->output);
 
-        $listener = new CommandStartListener($this->entityManager, $this->commandExecutionTracker, true, [], new SensitiveParameterRedactor([]));
-        $this->entityManager->expects($this->never())->method('persist');
+        $listener = new CommandStartListener($this->writer, $this->commandExecutionTracker, true, [], new SensitiveParameterRedactor([]));
+        $this->writer->expects($this->never())->method('create');
         $this->commandExecutionTracker->expects($this->never())->method('setToken');
 
         $listener->onConsoleCommand($this->event);
@@ -87,8 +86,8 @@ class CommandStartListenerTest extends TestCase
         $command = new TestCommandWithoutAttribute();
         $this->event = new ConsoleCommandEvent($command, $this->input, $this->output);
 
-        $listener = new CommandStartListener($this->entityManager, $this->commandExecutionTracker, true, ['app:command-without-attribute'], new SensitiveParameterRedactor([]));
-        $this->entityManager->expects($this->once())->method('persist');
+        $listener = new CommandStartListener($this->writer, $this->commandExecutionTracker, true, ['app:command-without-attribute'], new SensitiveParameterRedactor([]));
+        $this->writer->expects($this->once())->method('create');
         $this->commandExecutionTracker->expects($this->once())->method('setToken');
 
         $listener->onConsoleCommand($this->event);
@@ -97,7 +96,7 @@ class CommandStartListenerTest extends TestCase
     public function testDoesNothingWhenNoCommand(): void
     {
         $this->event = new ConsoleCommandEvent(null, $this->input, $this->output);
-        $this->entityManager->expects($this->never())->method('persist');
+        $this->writer->expects($this->never())->method('create');
         $this->commandExecutionTracker->expects($this->never())->method('setToken');
 
         $this->listener->onConsoleCommand($this->event);
@@ -109,8 +108,7 @@ class CommandStartListenerTest extends TestCase
 
         $this->event = new ConsoleCommandEvent($command, $this->input, $this->output);
 
-        $this->entityManager->expects($this->never())->method('persist');
-        $this->entityManager->expects($this->never())->method('flush');
+        $this->writer->expects($this->never())->method('create');
         $this->commandExecutionTracker->expects($this->never())->method('setToken');
 
         $this->listener->onConsoleCommand($this->event);
@@ -129,15 +127,15 @@ class CommandStartListenerTest extends TestCase
                 }),
             );
 
-        $this->entityManager->expects($this->once())->method('persist')
-            ->with($this->callback(function (CommandLog $log) {
-                return 'app:my-command' === $log->getCommandName()
-                    && $log->getArguments() === ['arg1' => 'value1', 'opt1' => 'value2']
-                    && $log->getStartTime() instanceof \DateTimeImmutable
-                    && Uuid::isValid($log->getExecutionToken());
-            }));
-
-        $this->entityManager->expects($this->once())->method('flush');
+        $this->writer->expects($this->once())->method('create')
+            ->with(
+                'app:my-command',
+                ['arg1' => 'value1', 'opt1' => 'value2'],
+                $this->isInstanceOf(\DateTimeImmutable::class),
+                $this->callback(function ($token) {
+                    return Uuid::isValid($token);
+                }),
+            );
 
         $this->listener->onConsoleCommand($this->event);
     }
@@ -155,54 +153,39 @@ class CommandStartListenerTest extends TestCase
                 }),
             );
 
-        $this->entityManager->expects($this->once())->method('persist')
-            ->with($this->callback(function (CommandLog $log) {
-                return 'app:my-command' === $log->getCommandName()
-                    && [] === $log->getArguments()
-                    && $log->getStartTime() instanceof \DateTimeImmutable
-                    && Uuid::isValid($log->getExecutionToken());
-            }));
-        $this->entityManager->expects($this->once())->method('flush');
+        $this->writer->expects($this->once())->method('create')
+            ->with(
+                'app:my-command',
+                [],
+                $this->isInstanceOf(\DateTimeImmutable::class),
+                $this->callback(function ($token) {
+                    return Uuid::isValid($token);
+                }),
+            );
 
         $this->listener->onConsoleCommand($this->event);
     }
 
-    public function testPersistFailureDoesNotBreakTheCommand(): void
+    public function testWriteFailureDoesNotBreakTheCommand(): void
     {
         $this->input->method('getArguments')->willReturn([]);
         $this->input->method('getOptions')->willReturn([]);
 
-        $this->entityManager->expects($this->once())->method('persist')
+        $this->writer->expects($this->once())->method('create')
             ->willThrowException(new \RuntimeException('Connection refused'));
-        $this->entityManager->expects($this->never())->method('flush');
 
         $this->listener->onConsoleCommand($this->event);
 
-        // Reaching this line proves the exception raised by persist() never propagated out.
+        // Reaching this line proves the exception raised by CommandLogWriter::create() never propagated out.
         $this->addToAssertionCount(1);
     }
 
-    public function testFlushFailureDoesNotBreakTheCommand(): void
+    public function testLogsErrorWithCommandNameWhenWriteFails(): void
     {
         $this->input->method('getArguments')->willReturn([]);
         $this->input->method('getOptions')->willReturn([]);
 
-        $this->entityManager->expects($this->once())->method('persist');
-        $this->entityManager->expects($this->once())->method('flush')
-            ->willThrowException(new \RuntimeException('Connection lost'));
-
-        $this->listener->onConsoleCommand($this->event);
-
-        // Reaching this line proves the exception raised by flush() never propagated out.
-        $this->addToAssertionCount(1);
-    }
-
-    public function testLogsErrorWithCommandNameWhenPersistFails(): void
-    {
-        $this->input->method('getArguments')->willReturn([]);
-        $this->input->method('getOptions')->willReturn([]);
-
-        $this->entityManager->method('persist')
+        $this->writer->method('create')
             ->willThrowException(new \RuntimeException('Connection refused'));
 
         $logger = $this->createMock(LoggerInterface::class);
@@ -216,7 +199,7 @@ class CommandStartListenerTest extends TestCase
             );
 
         $listener = new CommandStartListener(
-            $this->entityManager,
+            $this->writer,
             $this->commandExecutionTracker,
             true,
             [],
@@ -233,11 +216,11 @@ class CommandStartListenerTest extends TestCase
         $this->input->method('getArguments')->willReturn([]);
         $this->input->method('getOptions')->willReturn([]);
 
-        $this->entityManager->method('persist')
+        $this->writer->method('create')
             ->willThrowException(new \RuntimeException('Connection refused'));
 
         $listener = new CommandStartListener(
-            $this->entityManager,
+            $this->writer,
             $this->commandExecutionTracker,
             true,
             [],

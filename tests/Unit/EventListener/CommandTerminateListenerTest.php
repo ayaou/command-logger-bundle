@@ -13,11 +13,9 @@ declare(strict_types=1);
 
 namespace Ayaou\CommandLoggerBundle\Tests\Unit\EventListener;
 
-use Ayaou\CommandLoggerBundle\Entity\CommandLog;
 use Ayaou\CommandLoggerBundle\EventListener\CommandLogger\CommandTerminateListener;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\EntityRepository;
+use Ayaou\CommandLoggerBundle\Util\CommandLogWriter;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -31,7 +29,7 @@ class CommandTerminateListenerTest extends TestCase
 {
     private CommandTerminateListener $listener;
 
-    private MockObject|EntityManagerInterface $entityManager;
+    private MockObject|CommandLogWriter $writer;
 
     private MockObject|CommandExecutionTracker $commandExecutionTracker;
 
@@ -43,25 +41,18 @@ class CommandTerminateListenerTest extends TestCase
 
     private MockObject|OutputInterface $output;
 
-    private MockObject|EntityRepository $repository;
-
     protected function setUp(): void
     {
-        $this->entityManager = $this->createMock(EntityManagerInterface::class);
+        $this->writer = $this->createMock(CommandLogWriter::class);
         $this->commandExecutionTracker = $this->createMock(CommandExecutionTracker::class);
         $this->command = new TestCommand();
         $this->input = $this->createMock(InputInterface::class);
         $this->output = $this->createMock(BufferedOutput::class);
-        $this->repository = $this->createMock(EntityRepository::class);
 
         $this->event = new ConsoleTerminateEvent($this->command, $this->input, $this->output, 0);
 
-        $this->entityManager->method('getRepository')
-            ->with(CommandLog::class)
-            ->willReturn($this->repository);
-
         $this->listener = new CommandTerminateListener(
-            $this->entityManager,
+            $this->writer,
             $this->commandExecutionTracker,
             true, // Enabled by default
             [],
@@ -70,8 +61,8 @@ class CommandTerminateListenerTest extends TestCase
 
     public function testDoesNothingWhenDisabled(): void
     {
-        $listener = new CommandTerminateListener($this->entityManager, $this->commandExecutionTracker, false, []);
-        $this->entityManager->expects($this->never())->method('persist');
+        $listener = new CommandTerminateListener($this->writer, $this->commandExecutionTracker, false, []);
+        $this->writer->expects($this->never())->method('markTerminated');
         $this->commandExecutionTracker->expects($this->never())->method('getToken');
 
         $listener->onConsoleTerminate($this->event);
@@ -80,95 +71,48 @@ class CommandTerminateListenerTest extends TestCase
     public function testDoesNothingWhenNoExecutionToken(): void
     {
         $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn(null);
-        $this->entityManager->expects($this->never())->method('persist');
+        $this->writer->expects($this->never())->method('markTerminated');
         $this->commandExecutionTracker->expects($this->never())->method('clearToken');
-
-        $this->listener->onConsoleTerminate($this->event);
-    }
-
-    public function testDoesNothingWhenNoLogFound(): void
-    {
-        $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn('some-token');
-        $this->repository->method('findOneBy')
-            ->with(['executionToken' => 'some-token'])
-            ->willReturn(null);
-        $this->entityManager->expects($this->never())->method('persist');
-        // Removed the incorrect expectation that clearToken() should not be called
 
         $this->listener->onConsoleTerminate($this->event);
     }
 
     public function testLogsTerminationAndClearsToken(): void
     {
-        $log = new CommandLog();
         $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn('some-token');
-        $this->repository->method('findOneBy')
-            ->with(['executionToken' => 'some-token'])
-            ->willReturn($log);
 
-        $this->entityManager->expects($this->once())->method('persist')
-            ->with($this->callback(function (CommandLog $persistedLog) use ($log) {
-                return $persistedLog === $log
-                    && $persistedLog->getEndTime() instanceof \DateTimeImmutable
-                    && 0 === $persistedLog->getExitCode();
-            }));
-        $this->entityManager->expects($this->once())->method('flush');
+        $this->writer->expects($this->once())->method('markTerminated')
+            ->with(
+                'some-token',
+                $this->isInstanceOf(\DateTimeImmutable::class),
+                0,
+                $this->anything(),
+            );
         $this->commandExecutionTracker->expects($this->once())->method('clearToken')->with($this->command);
 
         $this->listener->onConsoleTerminate($this->event);
     }
 
-    public function testFindOneByFailureDoesNotBreakTheCommand(): void
+    public function testWriteFailureDoesNotBreakTheCommand(): void
     {
         $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn('some-token');
-        $this->repository->expects($this->once())->method('findOneBy')
-            ->willThrowException(new \RuntimeException('no such table: command_log'));
-        $this->entityManager->expects($this->never())->method('persist');
+
+        $this->writer->expects($this->once())->method('markTerminated')
+            ->willThrowException(new \RuntimeException('Connection refused'));
 
         // The token must still be cleared: the write failed, but tracking state must not leak.
         $this->commandExecutionTracker->expects($this->once())->method('clearToken')->with($this->command);
 
         $this->listener->onConsoleTerminate($this->event);
 
-        $this->addToAssertionCount(1);
-    }
-
-    public function testPersistFailureDoesNotBreakTheCommand(): void
-    {
-        $log = new CommandLog();
-        $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn('some-token');
-        $this->repository->method('findOneBy')->willReturn($log);
-
-        $this->entityManager->expects($this->once())->method('persist')
-            ->willThrowException(new \RuntimeException('Connection refused'));
-        $this->entityManager->expects($this->never())->method('flush');
-        $this->commandExecutionTracker->expects($this->once())->method('clearToken')->with($this->command);
-
-        $this->listener->onConsoleTerminate($this->event);
-
-        $this->addToAssertionCount(1);
-    }
-
-    public function testFlushFailureDoesNotBreakTheCommand(): void
-    {
-        $log = new CommandLog();
-        $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn('some-token');
-        $this->repository->method('findOneBy')->willReturn($log);
-
-        $this->entityManager->expects($this->once())->method('persist');
-        $this->entityManager->expects($this->once())->method('flush')
-            ->willThrowException(new \RuntimeException('Connection lost'));
-        $this->commandExecutionTracker->expects($this->once())->method('clearToken')->with($this->command);
-
-        $this->listener->onConsoleTerminate($this->event);
-
+        // Reaching this line proves the exception raised by CommandLogWriter::markTerminated() never propagated out.
         $this->addToAssertionCount(1);
     }
 
     public function testLogsErrorWithCommandNameWhenLoggingFails(): void
     {
         $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn('some-token');
-        $this->repository->method('findOneBy')
+        $this->writer->method('markTerminated')
             ->willThrowException(new \RuntimeException('no such table: command_log'));
 
         $logger = $this->createMock(LoggerInterface::class);
@@ -182,7 +126,7 @@ class CommandTerminateListenerTest extends TestCase
             );
 
         $listener = new CommandTerminateListener(
-            $this->entityManager,
+            $this->writer,
             $this->commandExecutionTracker,
             true,
             [],
@@ -196,11 +140,11 @@ class CommandTerminateListenerTest extends TestCase
     public function testDoesNotBreakWhenNoLoggerIsConfigured(): void
     {
         $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn('some-token');
-        $this->repository->method('findOneBy')
+        $this->writer->method('markTerminated')
             ->willThrowException(new \RuntimeException('no such table: command_log'));
 
         $listener = new CommandTerminateListener(
-            $this->entityManager,
+            $this->writer,
             $this->commandExecutionTracker,
             true,
             [],
