@@ -16,6 +16,10 @@ namespace Ayaou\CommandLoggerBundle\Util;
 /**
  * Masks the value of command arguments/options whose name looks sensitive (password,
  * token, ...) before they are persisted, so secrets never reach the command_log table.
+ *
+ * The configurable surface is the sensitive_parameters list, not this class.
+ *
+ * @internal
  */
 class SensitiveParameterRedactor
 {

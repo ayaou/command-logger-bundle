@@ -22,6 +22,16 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\Exception\ExceptionInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
+/**
+ * Wraps the bundle's API responses in the JSON-LD/Hydra envelope.
+ *
+ * Coupled to CommandLogController on purpose: getApiBasePath() strips that controller's own
+ * path back off a generated URL, which is how the prefix the application mounted the API
+ * under is recovered. That makes this a helper for this bundle's own controller rather than
+ * a reusable JSON-LD factory - do not autowire it elsewhere.
+ *
+ * @internal
+ */
 class JsonLdFactory
 {
     public function __construct(
