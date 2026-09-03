@@ -41,6 +41,7 @@ class ConfigurationTest extends TestCase
             'sensitive_parameters' => ['password', 'passwd', 'secret', 'token', 'api-key', 'api_key', 'apikey', 'credential', 'auth'],
             'max_error_message_length' => 65535,
             'api' => ['enabled' => false],
+            'entity_manager' => null,
         ], $config);
     }
 
@@ -53,6 +54,7 @@ class ConfigurationTest extends TestCase
             'sensitive_parameters' => ['password'],
             'max_error_message_length' => 1000,
             'api' => ['enabled' => true],
+            'entity_manager' => 'reporting',
         ];
 
         $config = $this->processor->processConfiguration($this->configuration, [$inputConfig]);
@@ -64,7 +66,22 @@ class ConfigurationTest extends TestCase
             'sensitive_parameters' => ['password'],
             'max_error_message_length' => 1000,
             'api' => ['enabled' => true],
+            'entity_manager' => 'reporting',
         ], $config);
+    }
+
+    public function testEntityManagerDefaultsToNull(): void
+    {
+        $config = $this->processor->processConfiguration($this->configuration, [[]]);
+
+        $this->assertNull($config['entity_manager']);
+    }
+
+    public function testEntityManagerAcceptsAName(): void
+    {
+        $config = $this->processor->processConfiguration($this->configuration, [['entity_manager' => 'reporting']]);
+
+        $this->assertSame('reporting', $config['entity_manager']);
     }
 
     public function testEmptySensitiveParametersDisablesRedaction(): void

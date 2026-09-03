@@ -31,6 +31,7 @@ class CommandLoggerExtension extends Extension implements PrependExtensionInterf
         $container->setParameter('command_logger.commands', $processedConfig['commands']);
         $container->setParameter('command_logger.sensitive_parameters', $processedConfig['sensitive_parameters']);
         $container->setParameter('command_logger.max_error_message_length', $processedConfig['max_error_message_length']);
+        $container->setParameter('command_logger.entity_manager', $processedConfig['entity_manager']);
 
         // Default value for the parameter that CommandLoggerPass populates at compile time
         // (see CommandLoggerBundle::build()). It must exist here already: services.yaml
@@ -67,15 +68,43 @@ class CommandLoggerExtension extends Extension implements PrependExtensionInterf
             return;
         }
 
+        $configuration = new Configuration();
+        $processedConfig = $this->processConfiguration($configuration, $container->getExtensionConfig($this->getAlias()));
+
+        $mapping = [
+            'is_bundle' => true,
+            'type' => 'attribute',
+            'dir' => 'src/Entity',
+            'prefix' => 'Ayaou\CommandLoggerBundle\Entity',
+            'alias' => 'CommandLogger',
+        ];
+
+        $entityManagerName = $processedConfig['entity_manager'];
+
+        // Null (the default) keeps this in exactly the shape it always had: the short
+        // "orm.mappings" form, which targets the default entity manager. A named entity
+        // manager instead targets "orm.entity_managers.<name>.mappings" - the long form.
+        // DoctrineBundle refuses to see both forms at once, so which one gets written here
+        // must depend on whether a name was configured, not be added unconditionally.
+        if (null === $entityManagerName) {
+            $container->prependExtensionConfig('doctrine', [
+                'orm' => [
+                    'mappings' => [
+                        'CommandLoggerBundle' => $mapping,
+                    ],
+                ],
+            ]);
+
+            return;
+        }
+
         $container->prependExtensionConfig('doctrine', [
             'orm' => [
-                'mappings' => [
-                    'CommandLoggerBundle' => [
-                        'is_bundle' => true,
-                        'type' => 'attribute',
-                        'dir' => 'src/Entity',
-                        'prefix' => 'Ayaou\CommandLoggerBundle\Entity',
-                        'alias' => 'CommandLogger',
+                'entity_managers' => [
+                    $entityManagerName => [
+                        'mappings' => [
+                            'CommandLoggerBundle' => $mapping,
+                        ],
                     ],
                 ],
             ],

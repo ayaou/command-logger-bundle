@@ -16,6 +16,7 @@ namespace Ayaou\CommandLoggerBundle\Util;
 use Ayaou\CommandLoggerBundle\Entity\CommandLog;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\Persistence\ManagerRegistry;
 
 /**
  * Writes CommandLog rows through DBAL rather than the ORM's unit of work.
@@ -36,11 +37,35 @@ use Doctrine\ORM\EntityManagerInterface;
  */
 class CommandLogWriter
 {
-    private EntityManagerInterface $entityManager;
+    private ManagerRegistry $managerRegistry;
 
-    public function __construct(EntityManagerInterface $entityManager)
+    /**
+     * Name of the Doctrine entity manager to write to, as configured through
+     * "command_logger.entity_manager". Null resolves to the default entity manager -
+     * existing behavior, unchanged.
+     */
+    private ?string $entityManagerName;
+
+    public function __construct(ManagerRegistry $managerRegistry, ?string $entityManagerName = null)
     {
-        $this->entityManager = $entityManager;
+        $this->managerRegistry = $managerRegistry;
+        $this->entityManagerName = $entityManagerName;
+    }
+
+    /**
+     * Resolved on every call rather than cached, exactly like ServiceEntityRepository does -
+     * the registry may hand back a different (or reopened) manager instance across the
+     * lifetime of a long-running process.
+     */
+    private function getEntityManager(): EntityManagerInterface
+    {
+        $manager = $this->managerRegistry->getManager($this->entityManagerName);
+
+        if (!$manager instanceof EntityManagerInterface) {
+            throw new \LogicException(sprintf('The Doctrine manager "%s" is not an ORM entity manager (got an instance of "%s").', $this->entityManagerName ?? 'default', $manager::class));
+        }
+
+        return $manager;
     }
 
     /**
@@ -54,9 +79,10 @@ class CommandLogWriter
         \DateTimeImmutable $startTime,
         string $executionToken,
     ): void {
-        $metadata = $this->entityManager->getClassMetadata(CommandLog::class);
+        $entityManager = $this->getEntityManager();
+        $metadata = $entityManager->getClassMetadata(CommandLog::class);
 
-        $this->entityManager->getConnection()->insert(
+        $entityManager->getConnection()->insert(
             $metadata->getTableName(),
             [
                 $metadata->getColumnName('commandName') => $commandName,
@@ -84,9 +110,10 @@ class CommandLogWriter
         int $exitCode,
         ?int $durationMs,
     ): void {
-        $metadata = $this->entityManager->getClassMetadata(CommandLog::class);
+        $entityManager = $this->getEntityManager();
+        $metadata = $entityManager->getClassMetadata(CommandLog::class);
 
-        $this->entityManager->getConnection()->update(
+        $entityManager->getConnection()->update(
             $metadata->getTableName(),
             [
                 $metadata->getColumnName('endTime') => $endTime,
@@ -111,9 +138,10 @@ class CommandLogWriter
      */
     public function markErrored(string $executionToken, string $errorMessage): void
     {
-        $metadata = $this->entityManager->getClassMetadata(CommandLog::class);
+        $entityManager = $this->getEntityManager();
+        $metadata = $entityManager->getClassMetadata(CommandLog::class);
 
-        $this->entityManager->getConnection()->update(
+        $entityManager->getConnection()->update(
             $metadata->getTableName(),
             [
                 $metadata->getColumnName('errorMessage') => $errorMessage,

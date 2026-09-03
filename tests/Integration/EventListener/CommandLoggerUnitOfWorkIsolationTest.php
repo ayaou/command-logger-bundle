@@ -22,6 +22,7 @@ use Ayaou\CommandLoggerBundle\Util\CommandLogWriter;
 use Ayaou\CommandLoggerBundle\Util\SensitiveParameterRedactor;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Console\ConsoleEvents;
 use Symfony\Component\Console\Event\ConsoleCommandEvent;
 use Symfony\Component\Console\Input\ArrayInput;
@@ -44,11 +45,14 @@ class CommandLoggerUnitOfWorkIsolationTest extends AppKernelTestCase
 {
     private EntityManagerInterface $entityManager;
 
+    private ManagerRegistry $managerRegistry;
+
     protected function setUp(): void
     {
         self::bootKernel();
 
         $this->entityManager = self::getContainer()->get('doctrine.orm.entity_manager');
+        $this->managerRegistry = self::getContainer()->get('doctrine');
 
         $schemaTool = new SchemaTool($this->entityManager);
         $metadata = $this->entityManager->getClassMetadata(CommandLog::class);
@@ -112,7 +116,7 @@ class CommandLoggerUnitOfWorkIsolationTest extends AppKernelTestCase
     private function createDispatcher(): EventDispatcher
     {
         $tracker = new CommandExecutionTracker();
-        $startListener = new CommandStartListener(new CommandLogWriter($this->entityManager), $tracker, true, [], new SensitiveParameterRedactor([]));
+        $startListener = new CommandStartListener(new CommandLogWriter($this->managerRegistry), $tracker, true, [], new SensitiveParameterRedactor([]));
 
         $dispatcher = new EventDispatcher();
         $dispatcher->addListener(ConsoleEvents::COMMAND, [$startListener, 'onConsoleCommand']);
