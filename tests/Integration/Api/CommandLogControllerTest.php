@@ -76,6 +76,36 @@ class CommandLogControllerTest extends AppKernelTestCase
         $this->assertSame('app:example', $payload['commandName']);
     }
 
+    public function testItemExposesTheCapturedOutput(): void
+    {
+        $log = $this->persistLog('app:load', 0, 'token-output');
+        $log->setOutput("[OK] 3 products loaded\n");
+        $this->entityManager->flush();
+
+        $response = $this->httpKernel->handle(Request::create('/command-logs/'.$log->getId()));
+
+        $payload = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame("[OK] 3 products loaded\n", $payload['output']);
+    }
+
+    /**
+     * The list endpoint is a listing, not a log viewer: putting arbitrarily long command
+     * output on every row of every page would be paid for on requests that never wanted it.
+     */
+    public function testListDoesNotCarryTheCapturedOutput(): void
+    {
+        $log = $this->persistLog('app:load', 0, 'token-output-list');
+        $log->setOutput("[OK] 3 products loaded\n");
+        $this->entityManager->flush();
+
+        $response = $this->httpKernel->handle(Request::create('/command-logs'));
+
+        $payload = json_decode((string) $response->getContent(), true);
+
+        $this->assertArrayNotHasKey('output', $payload['hydra:member'][0]);
+    }
+
     public function testItemReturns404ForUnknownId(): void
     {
         $response = $this->httpKernel->handle(Request::create('/command-logs/999999'));
