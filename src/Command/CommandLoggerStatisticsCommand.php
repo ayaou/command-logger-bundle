@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Ayaou\CommandLoggerBundle\Command;
 
 use Ayaou\CommandLoggerBundle\Dto\CommandLogFilter;
-use Ayaou\CommandLoggerBundle\Repository\CommandLogRepository;
+use Ayaou\CommandLoggerBundle\Repository\CommandLogStatistics;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Exception\InvalidArgumentException;
@@ -36,13 +36,13 @@ class CommandLoggerStatisticsCommand extends Command
      */
     private const DEFAULT_LIMIT = 10;
 
-    private CommandLogRepository $commandLogRepository;
+    private CommandLogStatistics $commandLogStatistics;
 
     public function __construct(
-        CommandLogRepository $commandLogRepository,
+        CommandLogStatistics $commandLogStatistics,
     ) {
         parent::__construct();
-        $this->commandLogRepository = $commandLogRepository;
+        $this->commandLogStatistics = $commandLogStatistics;
     }
 
     protected function configure(): void
@@ -109,8 +109,8 @@ class CommandLoggerStatisticsCommand extends Command
             to: $to,
         );
 
-        $statistics = $this->commandLogRepository->getStatistics($filter);
-        $byCommand = $this->commandLogRepository->getStatisticsByCommand($filter, $limit);
+        $statistics = $this->commandLogStatistics->getStatistics($filter);
+        $byCommand = $this->commandLogStatistics->getStatisticsByCommand($filter, $limit);
 
         $this->displaySummary($statistics, $io);
         $this->displayByExitCode($statistics['byExitCode'], $io);
