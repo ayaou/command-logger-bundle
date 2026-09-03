@@ -147,7 +147,7 @@ diagnose.
 The `command-logger:show` command displays logged command executions from the `command_log` table. It supports filtering, pagination, and viewing specific entries by ID.
 
 ```bash
-bin/console command-logger:show [name] [--limit=LIMIT] [--code=CODE] [--id=ID] [--error] [--success]
+bin/console command-logger:show [name] [--limit=LIMIT] [--code=CODE] [--id=ID] [--error] [--success] [--from=FROM] [--to=TO]
 ```
 ### Description
 This command retrieves and displays command execution logs. By default, it shows the latest 10 entries, ordered by startTime in descending order,
@@ -165,6 +165,8 @@ The command supports pagination, allowing you to press Enter to view more entrie
 * --id (optional): Displays a single log entry by its ID (e.g., --id=123). When used, no other arguments or options are allowed.
 * --error (optional): Filters logs to show only entries with non-zero exit codes (indicating errors). Cannot be used with --success or --code.
 * --success (optional): Filters logs to show only entries with an exit code of 0 (indicating success). Cannot be used with --error or --code.
+* --from (optional, `Y-m-d` or `Y-m-d H:i:s`): Only include logs started on or after this date/time.
+* --to (optional, `Y-m-d` or `Y-m-d H:i:s`): Only include logs started on or before this date/time.
 
 ## Purging Old Logs
 The bundle includes an automatic mechanism to purge logs older than the configured `purge_threshold`. You can also manually trigger log cleanup using the following command:

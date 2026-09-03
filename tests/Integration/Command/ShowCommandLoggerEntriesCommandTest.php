@@ -179,6 +179,74 @@ class ShowCommandLoggerEntriesCommandTest extends AppKernelTestCase
         $this->assertEquals(0, $this->commandTester->getStatusCode());
     }
 
+    public function testExecuteListViewWithFromFilter(): void
+    {
+        // Create test data with distinct start times
+        $this->createCommandLog(1, 'test:command', 0, '550e8400-e29b-41d4-a716-446655440000', new \DateTimeImmutable('2025-05-01 10:00:00'));
+        $entry2 = $this->createCommandLog(2, 'other:command', 0, '550e8400-e29b-41d4-a716-446655440001', new \DateTimeImmutable('2025-05-10 10:00:00'));
+        $this->entityManager->flush();
+
+        // Execute the command with --from restricting to entries started on or after 2025-05-05
+        $this->commandTester->setInputs(['q']);
+        $this->commandTester->execute(['--from' => '2025-05-05']);
+
+        // Verify the command fetched only the entry started on or after the "from" date
+        $entries = $this->repository->createQueryBuilder('cl')
+            ->where('cl.startTime >= :from')
+            ->setParameter('from', new \DateTimeImmutable('2025-05-05 00:00:00'))
+            ->getQuery()
+            ->getResult();
+        $this->assertCount(1, $entries);
+        $this->assertSame($entry2->getId(), $entries[0]->getId());
+
+        // Verify minimal output
+        $output = $this->commandTester->getDisplay();
+        $this->assertStringContainsString('other:command', $output);
+        $this->assertStringNotContainsString('test:command', $output);
+        $this->assertEquals(0, $this->commandTester->getStatusCode());
+    }
+
+    public function testExecuteListViewWithToFilter(): void
+    {
+        // Create test data with distinct start times
+        $entry1 = $this->createCommandLog(1, 'test:command', 0, '550e8400-e29b-41d4-a716-446655440000', new \DateTimeImmutable('2025-05-01 10:00:00'));
+        $this->createCommandLog(2, 'other:command', 0, '550e8400-e29b-41d4-a716-446655440001', new \DateTimeImmutable('2025-05-10 10:00:00'));
+        $this->entityManager->flush();
+
+        // Execute the command with --to restricting to entries started on or before 2025-05-05
+        $this->commandTester->setInputs(['q']);
+        $this->commandTester->execute(['--to' => '2025-05-05']);
+
+        // Verify the command fetched only the entry started on or before the "to" date
+        $entries = $this->repository->createQueryBuilder('cl')
+            ->where('cl.startTime <= :to')
+            ->setParameter('to', new \DateTimeImmutable('2025-05-05 23:59:59'))
+            ->getQuery()
+            ->getResult();
+        $this->assertCount(1, $entries);
+        $this->assertSame($entry1->getId(), $entries[0]->getId());
+
+        // Verify minimal output
+        $output = $this->commandTester->getDisplay();
+        $this->assertStringContainsString('test:command', $output);
+        $this->assertStringNotContainsString('other:command', $output);
+        $this->assertEquals(0, $this->commandTester->getStatusCode());
+    }
+
+    public function testExecuteWithInvalidFromFormat(): void
+    {
+        // Create test data
+        $this->createCommandLog(1, 'test:command', 0, '550e8400-e29b-41d4-a716-446655440000');
+        $this->entityManager->flush();
+
+        // Expect exception
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('The --from option must be formatted as "Y-m-d" or "Y-m-d H:i:s".');
+
+        // Execute the command with a malformed --from value
+        $this->commandTester->execute(['--from' => 'not-a-date']);
+    }
+
     public function testExecuteSingleEntryView(): void
     {
         // Create test data
@@ -276,13 +344,15 @@ class ShowCommandLoggerEntriesCommandTest extends AppKernelTestCase
         $this->commandTester->execute(['--id' => 1, '--limit' => 5]);
     }
 
-    private function createCommandLog(int $id, string $commandName, ?int $exitCode, string $executionToken): CommandLog
+    private function createCommandLog(int $id, string $commandName, ?int $exitCode, string $executionToken, ?\DateTimeImmutable $startTime = null): CommandLog
     {
+        $startTime ??= new \DateTimeImmutable('2025-05-10 10:00:00');
+
         $entry = new CommandLog();
         $entry->setCommandName($commandName)
             ->setArguments(['option' => 'value'])
-            ->setStartTime(new \DateTimeImmutable('2025-05-10 10:00:00'))
-            ->setEndTime(new \DateTimeImmutable('2025-05-10 10:01:00'))
+            ->setStartTime($startTime)
+            ->setEndTime($startTime->modify('+1 minute'))
             ->setExitCode($exitCode)
             ->setErrorMessage(null)
             ->setExecutionToken($executionToken);

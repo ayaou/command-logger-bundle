@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Ayaou\CommandLoggerBundle\Command;
 
+use Ayaou\CommandLoggerBundle\Dto\CommandLogFilter;
 use Ayaou\CommandLoggerBundle\Entity\CommandLog;
 use Ayaou\CommandLoggerBundle\Repository\CommandLogRepository;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -47,7 +48,9 @@ class ShowCommandLoggerEntriesCommand extends Command
             ->addOption('code', 'c', InputOption::VALUE_OPTIONAL, 'Filter by exit code')
             ->addOption('id', null, InputOption::VALUE_OPTIONAL, 'Show specific entry by ID')
             ->addOption('error', null, InputOption::VALUE_NONE, 'Filter entries with non-zero exit code (errors)')
-            ->addOption('success', null, InputOption::VALUE_NONE, 'Filter entries with zero exit code (success)');
+            ->addOption('success', null, InputOption::VALUE_NONE, 'Filter entries with zero exit code (success)')
+            ->addOption('from', null, InputOption::VALUE_OPTIONAL, 'Only include logs started on or after this date/time (Y-m-d or Y-m-d H:i:s)')
+            ->addOption('to', null, InputOption::VALUE_OPTIONAL, 'Only include logs started on or before this date/time (Y-m-d or Y-m-d H:i:s)');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -58,6 +61,8 @@ class ShowCommandLoggerEntriesCommand extends Command
         $errorFlag = $input->getOption('error');
         $successFlag = $input->getOption('success');
         $exitCode = $input->getOption('code');
+        $from = $input->getOption('from');
+        $to = $input->getOption('to');
         $limit = $input->hasOption('limit') ? $input->getOption('limit') : 10;
 
         if (null !== $id) {
@@ -82,6 +87,14 @@ class ShowCommandLoggerEntriesCommand extends Command
             }
 
             $limit = (int) $limit;
+        } else {
+            $limit = 10;
+        }
+
+        foreach (['from' => $from, 'to' => $to] as $option => $value) {
+            if (null !== $value && !preg_match('/^\d{4}-\d{2}-\d{2}( \d{2}:\d{2}:\d{2})?$/', $value)) {
+                throw new InvalidArgumentException(sprintf('The --%s option must be formatted as "Y-m-d" or "Y-m-d H:i:s".', $option));
+            }
         }
 
         if ($errorFlag && $successFlag) {
@@ -97,6 +110,8 @@ class ShowCommandLoggerEntriesCommand extends Command
                 || null !== $exitCode
                 || $errorFlag
                 || $successFlag
+                || null !== $from
+                || null !== $to
                 || (null !== $input->getOption('limit') && 10 != $input->getOption('limit'))) {
                 throw new InvalidArgumentException('When ID is specified, no other options or arguments are allowed, except the default limit.');
             }
@@ -113,43 +128,36 @@ class ShowCommandLoggerEntriesCommand extends Command
             return Command::SUCCESS;
         }
 
-        $commandName = $input->getArgument('name');
-        $offset = 0;
+        $status = null;
+        if ($errorFlag) {
+            $status = 'error';
+        } elseif ($successFlag) {
+            $status = 'success';
+        }
+
+        // --id is a separate lookup path, never a filter (see the early return above): the
+        // CommandLogFilter built here is only ever reached for the list view.
+        $filter = new CommandLogFilter(
+            page: 1,
+            limit: $limit,
+            name: $input->getArgument('name'),
+            status: $status,
+            code: null === $status ? $exitCode : null,
+            from: $from,
+            to: $to,
+        );
 
         while (true) {
-            $qb = $this->commandLogRepository->createQueryBuilder('cl');
+            $entries = iterator_to_array($this->commandLogRepository->getPaginatedResults($filter));
 
-            if (null !== $commandName) {
-                $qb->andWhere('cl.commandName = :commandName')
-                    ->setParameter('commandName', $commandName);
-            }
-
-            if ($errorFlag) {
-                $qb->andWhere('cl.exitCode != :exitCode')
-                    ->setParameter('exitCode', 0);
-            } elseif ($successFlag) {
-                $qb->andWhere('cl.exitCode = :exitCode')
-                    ->setParameter('exitCode', 0);
-            } elseif (null !== $exitCode) {
-                $qb->andWhere('cl.exitCode = :exitCode')
-                    ->setParameter('exitCode', $exitCode);
-            }
-
-            $entries = $qb->addOrderBy('cl.startTime', 'DESC')
-                ->setMaxResults($limit)
-                ->setFirstResult($offset)
-                ->getQuery()
-                ->getResult();
-
-            if (empty($entries)) {
-                if (0 === $offset) {
+            if ([] === $entries) {
+                if (1 === $filter->page) {
                     $io->note('No entries found matching the criteria.');
                 }
                 break;
             }
 
             $this->displayEntries($entries, $io, 1 === $limit);
-            $offset += $limit;
 
             if (count($entries) < $limit) {
                 break;
@@ -161,6 +169,7 @@ class ShowCommandLoggerEntriesCommand extends Command
             }
 
             $io->newLine();
+            ++$filter->page;
         }
 
         return Command::SUCCESS;
