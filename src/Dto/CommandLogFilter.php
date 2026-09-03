@@ -21,28 +21,23 @@ class CommandLogFilter
     public function __construct(
         #[Assert\Positive]
         public int $page = 1,
-
         #[Assert\Range(min: 1, max: 100)]
         public int $limit = 10,
-
         #[Assert\Length(min: 2)]
         public ?string $name = null,
-
         #[Assert\Choice(choices: ['success', 'error'], message: 'Status must be either "success" or "error".')]
         public ?string $status = null,
-
         public ?int $code = null,
 
         // Regex: Matches YYYY-MM-DD optionally followed by HH:MM:SS
         #[Assert\Regex(
             pattern: '/^\d{4}-\d{2}-\d{2}( \d{2}:\d{2}:\d{2})?$/',
-            message: 'Format must be "Y-m-d" or "Y-m-d H:i:s"'
+            message: 'Format must be "Y-m-d" or "Y-m-d H:i:s"',
         )]
         public ?string $from = null,
-
         #[Assert\Regex(
             pattern: '/^\d{4}-\d{2}-\d{2}( \d{2}:\d{2}:\d{2})?$/',
-            message: 'Format must be "Y-m-d" or "Y-m-d H:i:s"'
+            message: 'Format must be "Y-m-d" or "Y-m-d H:i:s"',
         )]
         public ?string $to = null,
     ) {

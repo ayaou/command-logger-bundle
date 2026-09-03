@@ -27,7 +27,8 @@ use Symfony\Component\Validator\Exception\ValidationFailedException; // <--- Imp
 class ApiExceptionListener
 {
     public function __construct(
-        #[Autowire('%kernel.debug%')] private readonly bool $isDebug,
+        #[Autowire('%kernel.debug%')]
+        private readonly bool $isDebug,
         private readonly RouterInterface $router,
     ) {
     }
@@ -76,7 +77,7 @@ class ApiExceptionListener
         $event->setResponse(new JsonResponse(
             $data,
             $statusCode,
-            ['Content-Type' => 'application/problem+json']
+            ['Content-Type' => 'application/problem+json'],
         ));
     }
 

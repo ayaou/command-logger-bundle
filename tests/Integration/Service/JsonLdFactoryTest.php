@@ -68,14 +68,14 @@ class JsonLdFactoryTest extends AppKernelTestCase
 
         $payload = json_decode(
             (string) $factory->createCollectionResponse($paginator, $request, $filter, ['command_log:list'])->getContent(),
-            true
+            true,
         );
 
         self::assertSame(2, $payload['hydra:totalItems']);
         self::assertArrayHasKey(
             'hydra:next',
             $payload['hydra:view'],
-            'Pagination was computed from the query string instead of the validated filter.'
+            'Pagination was computed from the query string instead of the validated filter.',
         );
         self::assertStringContainsString('page=2', $payload['hydra:view']['hydra:last']);
     }

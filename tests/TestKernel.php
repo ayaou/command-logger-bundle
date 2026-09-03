@@ -105,7 +105,6 @@ class TestKernel extends Kernel
 
             $container->loadFromExtension('doctrine', $doctrineConfig);
 
-
             // This autowire is also ORM version dependent:
             // For ORM 3.x, you should use "doctrine.orm.default_metadata_driver"
             // For ORM 2.x, the default name is often just "doctrine.orm.default_metadata_driver"

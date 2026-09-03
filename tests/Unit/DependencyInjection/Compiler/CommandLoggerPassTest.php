@@ -101,7 +101,7 @@ class CommandLoggerPassTest extends TestCase
             self::markTestSkipped(
                 'Invokable commands landed in Symfony 7.3. On earlier branches AddConsoleCommandPass '
                 .'rejects any console.command service that does not extend Command, so the rewrite '
-                .'this test covers cannot happen there.'
+                .'this test covers cannot happen there.',
             );
         }
 

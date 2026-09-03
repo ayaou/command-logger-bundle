@@ -33,6 +33,7 @@ use Symfony\Component\HttpKernel\KernelInterface;
 class CommandLogControllerTest extends AppKernelTestCase
 {
     private KernelInterface $httpKernel;
+
     private EntityManagerInterface $entityManager;
 
     protected function setUp(): void

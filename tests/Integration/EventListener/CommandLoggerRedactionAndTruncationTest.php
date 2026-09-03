@@ -146,8 +146,8 @@ class CommandLoggerRedactionAndTruncationTest extends AppKernelTestCase
     }
 
     /**
-     * @param array<int, string>        $sensitiveParameters
-     * @param array<string, string>     $options
+     * @param array<int, string>    $sensitiveParameters
+     * @param array<string, string> $options
      */
     private function dispatchCommandStart(array $sensitiveParameters, array $options): CommandLog
     {

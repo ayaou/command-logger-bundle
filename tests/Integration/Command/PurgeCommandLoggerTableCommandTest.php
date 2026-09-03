@@ -54,7 +54,7 @@ class PurgeCommandLoggerTableCommandTest extends AppKernelTestCase
                     $diff = (new \DateTimeImmutable())->diff($date);
 
                     return 30 === $diff->days && 1 === $diff->invert;
-                })
+                }),
             )
             ->willReturn(5);
 
@@ -73,7 +73,7 @@ class PurgeCommandLoggerTableCommandTest extends AppKernelTestCase
                     $diff = (new \DateTimeImmutable())->diff($date);
 
                     return 10 === $diff->days && 1 === $diff->invert;
-                })
+                }),
             )
             ->willReturn(3);
 
