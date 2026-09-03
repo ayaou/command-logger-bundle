@@ -68,12 +68,18 @@ class CommandTerminateListener extends AbstractCommandListener
             return;
         }
 
+        // Read before clearToken() below wipes it. Left null - rather than a computed guess
+        // - when no start instant was recorded (e.g. the tracker was cleared in between).
+        $startTimestamp = $this->commandExecutionTracker->getStartTimestamp($command);
+        $durationMs = null !== $startTimestamp ? intdiv(hrtime(true) - $startTimestamp, 1_000_000) : null;
+
         $log = $this->entityManager->getRepository(CommandLog::class)
             ->findOneBy(['executionToken' => $executionToken]);
 
         if ($log) {
             $log->setEndTime(new \DateTimeImmutable())
-                ->setExitCode($event->getExitCode());
+                ->setExitCode($event->getExitCode())
+                ->setDurationMs($durationMs);
 
             $this->entityManager->persist($log);
             $this->entityManager->flush();

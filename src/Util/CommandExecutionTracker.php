@@ -22,6 +22,17 @@ class CommandExecutionTracker
      */
     private array $tokens = [];
 
+    /**
+     * Start instants, in nanoseconds from hrtime(true), keyed the same way as $tokens. Kept
+     * separate from the CommandLog entity on purpose: CommandTerminateListener reloads the
+     * log row from the database, whose datetime_immutable columns only store to the second,
+     * so `endTime - startTime` would always be a multiple of 1000ms. This table carries the
+     * real start instant across the request in memory instead.
+     *
+     * @var array<int, int>
+     */
+    private array $startTimestamps = [];
+
     public function setToken(Command $command, string $token): void
     {
         $this->tokens[spl_object_id($command)] = $token;
@@ -32,13 +43,31 @@ class CommandExecutionTracker
         return $this->tokens[spl_object_id($command)] ?? null;
     }
 
+    /**
+     * Records the instant a command started, in nanoseconds. Callers should pass
+     * hrtime(true): it is monotonic, unlike microtime(), which can move backwards if the
+     * system clock is adjusted mid-execution.
+     */
+    public function setStartTimestamp(Command $command, int $timestamp): void
+    {
+        $this->startTimestamps[spl_object_id($command)] = $timestamp;
+    }
+
+    public function getStartTimestamp(Command $command): ?int
+    {
+        return $this->startTimestamps[spl_object_id($command)] ?? null;
+    }
+
     public function clearToken(Command $command): void
     {
-        unset($this->tokens[spl_object_id($command)]);
+        $id = spl_object_id($command);
+
+        unset($this->tokens[$id], $this->startTimestamps[$id]);
     }
 
     public function clear(): void
     {
         $this->tokens = [];
+        $this->startTimestamps = [];
     }
 }
