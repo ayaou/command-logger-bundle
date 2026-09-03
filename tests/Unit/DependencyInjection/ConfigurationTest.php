@@ -42,6 +42,7 @@ class ConfigurationTest extends TestCase
             'max_error_message_length' => 65535,
             'api' => ['enabled' => false],
             'entity_manager' => null,
+            'output_capture' => ['enabled' => false, 'max_length' => 16384],
         ], $config);
     }
 
@@ -55,6 +56,7 @@ class ConfigurationTest extends TestCase
             'max_error_message_length' => 1000,
             'api' => ['enabled' => true],
             'entity_manager' => 'reporting',
+            'output_capture' => ['enabled' => true, 'max_length' => 4096],
         ];
 
         $config = $this->processor->processConfiguration($this->configuration, [$inputConfig]);
@@ -67,6 +69,7 @@ class ConfigurationTest extends TestCase
             'max_error_message_length' => 1000,
             'api' => ['enabled' => true],
             'entity_manager' => 'reporting',
+            'output_capture' => ['enabled' => true, 'max_length' => 4096],
         ], $config);
     }
 
@@ -89,6 +92,21 @@ class ConfigurationTest extends TestCase
         $config = $this->processor->processConfiguration($this->configuration, [['sensitive_parameters' => []]]);
 
         $this->assertSame([], $config['sensitive_parameters']);
+    }
+
+    public function testOutputCaptureIsDisabledByDefault(): void
+    {
+        $config = $this->processor->processConfiguration($this->configuration, [[]]);
+
+        $this->assertFalse($config['output_capture']['enabled']);
+    }
+
+    public function testOutputCaptureMaxLengthBelowMinimumThrowsException(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('The value 99 is too small for path "command_logger.output_capture.max_length". Should be greater than or equal to 100');
+
+        $this->processor->processConfiguration($this->configuration, [['output_capture' => ['max_length' => 99]]]);
     }
 
     public function testMaxErrorMessageLengthBelowMinimumThrowsException(): void

@@ -21,6 +21,11 @@ services:
       - '../src/Service'
       - '../src/Dto'
       - '../src/Attribute'
+      # Neither is a service. OutputBuffer takes a plain int, so the mass registration above
+      # would fail to autowire it and break container compilation; OutputCaptureFilter is
+      # instantiated by the PHP stream engine, never by the container.
+      - '../src/Util/OutputBuffer.php'
+      - '../src/Util/OutputCaptureFilter.php'
 
   Ayaou\CommandLoggerBundle\EventListener\CommandLogger\CommandStartListener:
     class: Ayaou\CommandLoggerBundle\EventListener\CommandLogger\CommandStartListener
@@ -62,6 +67,14 @@ services:
 
   Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker:
     shared: true
+
+  # Shared on purpose: CommandStartListener attaches the capture and CommandTerminateListener
+  # detaches it, and they must be holding the same instance to do so.
+  Ayaou\CommandLoggerBundle\Util\OutputCapture:
+    shared: true
+    arguments:
+      $enabled: '%command_logger.output_capture.enabled%'
+      $maxOutputLength: '%command_logger.output_capture.max_length%'
 
   Ayaou\CommandLoggerBundle\Util\CommandLogWriter:
     arguments:

@@ -15,6 +15,7 @@ namespace Ayaou\CommandLoggerBundle\EventListener\CommandLogger;
 
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
 use Ayaou\CommandLoggerBundle\Util\CommandLogWriter;
+use Ayaou\CommandLoggerBundle\Util\OutputCapture;
 use Ayaou\CommandLoggerBundle\Util\SupportedCommandResolver;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Event\ConsoleTerminateEvent;
@@ -32,6 +33,8 @@ class CommandTerminateListener
 
     private SupportedCommandResolver $resolver;
 
+    private OutputCapture $outputCapture;
+
     private ?LoggerInterface $logger;
 
     public function __construct(
@@ -39,12 +42,14 @@ class CommandTerminateListener
         CommandExecutionTracker $commandExecutionTracker,
         bool $enabled,
         SupportedCommandResolver $resolver,
+        OutputCapture $outputCapture,
         ?LoggerInterface $logger = null,
     ) {
         $this->writer = $writer;
         $this->commandExecutionTracker = $commandExecutionTracker;
         $this->enabled = $enabled;
         $this->resolver = $resolver;
+        $this->outputCapture = $outputCapture;
         $this->logger = $logger;
     }
 
@@ -55,6 +60,12 @@ class CommandTerminateListener
         if (!$this->enabled || !$command || !$this->resolver->supports($command)) {
             return;
         }
+
+        // Detached before the token check below, and before the try/catch: whatever happens
+        // to this log entry, the filter this bundle attached to the command's output stream
+        // must come back off. Returns null when capture is disabled - the overwhelmingly
+        // common case - and never throws.
+        $capturedOutput = $this->outputCapture->stop();
 
         $executionToken = $this->commandExecutionTracker->getToken($command);
         if (!$executionToken) {
@@ -70,7 +81,7 @@ class CommandTerminateListener
             // A single UPDATE keyed on executionToken: no SELECT is issued first. A token
             // with no matching row (e.g. the start write itself previously failed) simply
             // updates zero rows - there is nothing more to do about it here.
-            $this->writer->markTerminated($executionToken, new \DateTimeImmutable(), $event->getExitCode(), $durationMs);
+            $this->writer->markTerminated($executionToken, new \DateTimeImmutable(), $event->getExitCode(), $durationMs, $capturedOutput);
         } catch (\Throwable $exception) {
             // A logging failure must never take the user's command down with it: give up on
             // writing this entry and let the command run its course.

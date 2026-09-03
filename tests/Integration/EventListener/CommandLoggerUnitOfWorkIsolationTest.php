@@ -19,6 +19,7 @@ use Ayaou\CommandLoggerBundle\Tests\Integration\AppKernelTestCase;
 use Ayaou\CommandLoggerBundle\Tests\Unit\EventListener\TestCommand;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
 use Ayaou\CommandLoggerBundle\Util\CommandLogWriter;
+use Ayaou\CommandLoggerBundle\Util\OutputCapture;
 use Ayaou\CommandLoggerBundle\Util\SensitiveParameterRedactor;
 use Ayaou\CommandLoggerBundle\Util\SupportedCommandResolver;
 use Doctrine\ORM\EntityManagerInterface;
@@ -117,7 +118,7 @@ class CommandLoggerUnitOfWorkIsolationTest extends AppKernelTestCase
     private function createDispatcher(): EventDispatcher
     {
         $tracker = new CommandExecutionTracker();
-        $startListener = new CommandStartListener(new CommandLogWriter($this->managerRegistry), $tracker, true, new SupportedCommandResolver([]), new SensitiveParameterRedactor([]));
+        $startListener = new CommandStartListener(new CommandLogWriter($this->managerRegistry), $tracker, true, new SupportedCommandResolver([]), new SensitiveParameterRedactor([]), new OutputCapture());
 
         $dispatcher = new EventDispatcher();
         $dispatcher->addListener(ConsoleEvents::COMMAND, [$startListener, 'onConsoleCommand']);

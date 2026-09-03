@@ -109,26 +109,38 @@ class CommandLogWriter
         \DateTimeImmutable $endTime,
         int $exitCode,
         ?int $durationMs,
+        ?string $output = null,
     ): void {
         $entityManager = $this->getEntityManager();
         $metadata = $entityManager->getClassMetadata(CommandLog::class);
 
+        $data = [
+            $metadata->getColumnName('endTime') => $endTime,
+            $metadata->getColumnName('exitCode') => $exitCode,
+            $metadata->getColumnName('durationMs') => $durationMs,
+        ];
+        $types = [
+            $metadata->getColumnName('endTime') => Types::DATETIME_IMMUTABLE,
+            $metadata->getColumnName('exitCode') => Types::INTEGER,
+            $metadata->getColumnName('durationMs') => Types::INTEGER,
+            $metadata->getColumnName('executionToken') => Types::STRING,
+        ];
+
+        // Only mentioned in the UPDATE when there is something to store, so that the
+        // statement issued with output capture disabled stays byte for byte the one this
+        // writer has always issued.
+        if (null !== $output) {
+            $data[$metadata->getColumnName('output')] = $output;
+            $types[$metadata->getColumnName('output')] = Types::TEXT;
+        }
+
         $entityManager->getConnection()->update(
             $metadata->getTableName(),
-            [
-                $metadata->getColumnName('endTime') => $endTime,
-                $metadata->getColumnName('exitCode') => $exitCode,
-                $metadata->getColumnName('durationMs') => $durationMs,
-            ],
+            $data,
             [
                 $metadata->getColumnName('executionToken') => $executionToken,
             ],
-            [
-                $metadata->getColumnName('endTime') => Types::DATETIME_IMMUTABLE,
-                $metadata->getColumnName('exitCode') => Types::INTEGER,
-                $metadata->getColumnName('durationMs') => Types::INTEGER,
-                $metadata->getColumnName('executionToken') => Types::STRING,
-            ],
+            $types,
         );
     }
 

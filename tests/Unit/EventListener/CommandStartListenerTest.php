@@ -16,6 +16,7 @@ namespace Ayaou\CommandLoggerBundle\Tests\Unit\EventListener;
 use Ayaou\CommandLoggerBundle\EventListener\CommandLogger\CommandStartListener;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
 use Ayaou\CommandLoggerBundle\Util\CommandLogWriter;
+use Ayaou\CommandLoggerBundle\Util\OutputCapture;
 use Ayaou\CommandLoggerBundle\Util\SensitiveParameterRedactor;
 use Ayaou\CommandLoggerBundle\Util\SupportedCommandResolver;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -58,12 +59,13 @@ class CommandStartListenerTest extends TestCase
             true, // Enabled by default
             new SupportedCommandResolver([]),
             new SensitiveParameterRedactor([]),
+            new OutputCapture(),
         );
     }
 
     public function testDoesNothingWhenDisabled(): void
     {
-        $listener = new CommandStartListener($this->writer, $this->commandExecutionTracker, false, new SupportedCommandResolver([]), new SensitiveParameterRedactor([]));
+        $listener = new CommandStartListener($this->writer, $this->commandExecutionTracker, false, new SupportedCommandResolver([]), new SensitiveParameterRedactor([]), new OutputCapture());
         $this->writer->expects($this->never())->method('create');
         $this->commandExecutionTracker->expects($this->never())->method('setToken');
 
@@ -75,7 +77,7 @@ class CommandStartListenerTest extends TestCase
         $command = new TestCommandWithoutAttribute();
         $this->event = new ConsoleCommandEvent($command, $this->input, $this->output);
 
-        $listener = new CommandStartListener($this->writer, $this->commandExecutionTracker, true, new SupportedCommandResolver([]), new SensitiveParameterRedactor([]));
+        $listener = new CommandStartListener($this->writer, $this->commandExecutionTracker, true, new SupportedCommandResolver([]), new SensitiveParameterRedactor([]), new OutputCapture());
         $this->writer->expects($this->never())->method('create');
         $this->commandExecutionTracker->expects($this->never())->method('setToken');
 
@@ -87,7 +89,7 @@ class CommandStartListenerTest extends TestCase
         $command = new TestCommandWithoutAttribute();
         $this->event = new ConsoleCommandEvent($command, $this->input, $this->output);
 
-        $listener = new CommandStartListener($this->writer, $this->commandExecutionTracker, true, new SupportedCommandResolver(['app:command-without-attribute']), new SensitiveParameterRedactor([]));
+        $listener = new CommandStartListener($this->writer, $this->commandExecutionTracker, true, new SupportedCommandResolver(['app:command-without-attribute']), new SensitiveParameterRedactor([]), new OutputCapture());
         $this->writer->expects($this->once())->method('create');
         $this->commandExecutionTracker->expects($this->once())->method('setToken');
 
@@ -205,6 +207,7 @@ class CommandStartListenerTest extends TestCase
             true,
             new SupportedCommandResolver([]),
             new SensitiveParameterRedactor([]),
+            new OutputCapture(),
             $logger,
         );
 
@@ -225,6 +228,7 @@ class CommandStartListenerTest extends TestCase
             true,
             new SupportedCommandResolver([]),
             new SensitiveParameterRedactor([]),
+            new OutputCapture(),
             null,
         );
 
