@@ -15,13 +15,14 @@ namespace Ayaou\CommandLoggerBundle\EventListener\CommandLogger;
 
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
 use Ayaou\CommandLoggerBundle\Util\CommandLogWriter;
+use Ayaou\CommandLoggerBundle\Util\SupportedCommandResolver;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Event\ConsoleTerminateEvent;
 
 /**
  * @internal
  */
-class CommandTerminateListener extends AbstractCommandListener
+class CommandTerminateListener
 {
     private CommandLogWriter $writer;
 
@@ -29,36 +30,21 @@ class CommandTerminateListener extends AbstractCommandListener
 
     private bool $enabled;
 
-    /**
-     * @var array<int|string, string>
-     */
-    private array $otherCommands;
-
-    /**
-     * @var array<int, string>
-     */
-    private array $attributedCommands;
+    private SupportedCommandResolver $resolver;
 
     private ?LoggerInterface $logger;
 
-    /**
-     * @param array<int|string, string> $otherCommands
-     * @param array<int, string>        $attributedCommands names (and aliases) collected at
-     *                                                      compile time by CommandLoggerPass
-     */
     public function __construct(
         CommandLogWriter $writer,
         CommandExecutionTracker $commandExecutionTracker,
         bool $enabled,
-        array $otherCommands = [],
-        array $attributedCommands = [],
+        SupportedCommandResolver $resolver,
         ?LoggerInterface $logger = null,
     ) {
         $this->writer = $writer;
         $this->commandExecutionTracker = $commandExecutionTracker;
         $this->enabled = $enabled;
-        $this->otherCommands = $otherCommands;
-        $this->attributedCommands = $attributedCommands;
+        $this->resolver = $resolver;
         $this->logger = $logger;
     }
 
@@ -66,7 +52,7 @@ class CommandTerminateListener extends AbstractCommandListener
     {
         $command = $event->getCommand();
 
-        if (!$this->enabled || !$command || !$this->isSupportedCommand($command, $this->otherCommands, $this->attributedCommands)) {
+        if (!$this->enabled || !$command || !$this->resolver->supports($command)) {
             return;
         }
 

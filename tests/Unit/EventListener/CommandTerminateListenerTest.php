@@ -16,6 +16,7 @@ namespace Ayaou\CommandLoggerBundle\Tests\Unit\EventListener;
 use Ayaou\CommandLoggerBundle\EventListener\CommandLogger\CommandTerminateListener;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
 use Ayaou\CommandLoggerBundle\Util\CommandLogWriter;
+use Ayaou\CommandLoggerBundle\Util\SupportedCommandResolver;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -55,13 +56,13 @@ class CommandTerminateListenerTest extends TestCase
             $this->writer,
             $this->commandExecutionTracker,
             true, // Enabled by default
-            [],
+            new SupportedCommandResolver([]),
         );
     }
 
     public function testDoesNothingWhenDisabled(): void
     {
-        $listener = new CommandTerminateListener($this->writer, $this->commandExecutionTracker, false, []);
+        $listener = new CommandTerminateListener($this->writer, $this->commandExecutionTracker, false, new SupportedCommandResolver([]));
         $this->writer->expects($this->never())->method('markTerminated');
         $this->commandExecutionTracker->expects($this->never())->method('getToken');
 
@@ -129,8 +130,7 @@ class CommandTerminateListenerTest extends TestCase
             $this->writer,
             $this->commandExecutionTracker,
             true,
-            [],
-            [],
+            new SupportedCommandResolver([]),
             $logger,
         );
 
@@ -147,8 +147,7 @@ class CommandTerminateListenerTest extends TestCase
             $this->writer,
             $this->commandExecutionTracker,
             true,
-            [],
-            [],
+            new SupportedCommandResolver([]),
             null,
         );
 

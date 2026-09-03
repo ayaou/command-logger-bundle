@@ -11,19 +11,33 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Ayaou\CommandLoggerBundle\EventListener\CommandLogger;
+namespace Ayaou\CommandLoggerBundle\Util;
 
 use Ayaou\CommandLoggerBundle\Attribute\CommandLogger;
 use Symfony\Component\Console\Command\Command;
 
 /**
+ * Decides whether one Command instance is selected for logging, on behalf of the three
+ * CommandLogger listeners. It carries its own configuration instead of taking it per call,
+ * so every listener asks the exact same question the exact same way.
+ *
  * @internal
  */
-class AbstractCommandListener
+class SupportedCommandResolver
 {
     /**
+     * @var array<int|string, string>
+     */
+    private array $otherCommands;
+
+    /**
+     * @var array<int, string>
+     */
+    private array $attributedCommands;
+
+    /**
      * @param array<int|string, string> $otherCommands
-     * @param array<int, string>        $attributedCommands names (and aliases) collected at compile
+     * @param array<int, string>        $attributedCommands names (and aliases) collected at build
      *                                                      time by CommandLoggerPass from every
      *                                                      #[CommandLogger] class - this is what
      *                                                      covers invokable-style commands, whose
@@ -31,18 +45,24 @@ class AbstractCommandListener
      *                                                      rewritten by Symfony's AddConsoleCommandPass
      *                                                      and can no longer be reflected upon directly
      */
-    protected function isSupportedCommand(Command $command, array $otherCommands, array $attributedCommands = []): bool
+    public function __construct(array $otherCommands, array $attributedCommands = [])
+    {
+        $this->otherCommands = $otherCommands;
+        $this->attributedCommands = $attributedCommands;
+    }
+
+    public function supports(Command $command): bool
     {
         $name = $command->getName();
         if (!$name) {
             return false;
         }
 
-        if ($this->isSupportedOnConfig($name, $otherCommands)) {
+        if ($this->isSupportedOnConfig($name)) {
             return true;
         }
 
-        if (in_array($name, $attributedCommands, true)) {
+        if (in_array($name, $this->attributedCommands, true)) {
             return true;
         }
 
@@ -62,16 +82,13 @@ class AbstractCommandListener
         return !empty($attributes);
     }
 
-    /**
-     * @param array<string> $otherCommands
-     */
-    private function isSupportedOnConfig(string $name, array $otherCommands): bool
+    private function isSupportedOnConfig(string $name): bool
     {
-        if (in_array($name, $otherCommands, true)) {
+        if (in_array($name, $this->otherCommands, true)) {
             return true;
         }
 
-        foreach ($otherCommands as $pattern) {
+        foreach ($this->otherCommands as $pattern) {
             if ($this->matchWithWildcard($pattern, $name)) {
                 return true;
             }

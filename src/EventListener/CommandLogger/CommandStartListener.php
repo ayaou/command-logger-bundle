@@ -16,6 +16,7 @@ namespace Ayaou\CommandLoggerBundle\EventListener\CommandLogger;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
 use Ayaou\CommandLoggerBundle\Util\CommandLogWriter;
 use Ayaou\CommandLoggerBundle\Util\SensitiveParameterRedactor;
+use Ayaou\CommandLoggerBundle\Util\SupportedCommandResolver;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Event\ConsoleCommandEvent;
 use Symfony\Component\Uid\Uuid;
@@ -23,7 +24,7 @@ use Symfony\Component\Uid\Uuid;
 /**
  * @internal
  */
-class CommandStartListener extends AbstractCommandListener
+class CommandStartListener
 {
     private CommandLogWriter $writer;
 
@@ -31,47 +32,32 @@ class CommandStartListener extends AbstractCommandListener
 
     private bool $enabled;
 
-    /**
-     * @var array<int|string, string>
-     */
-    private array $otherCommands;
+    private SupportedCommandResolver $resolver;
 
     private SensitiveParameterRedactor $sensitiveParameterRedactor;
 
-    /**
-     * @var array<int, string>
-     */
-    private array $attributedCommands;
-
     private ?LoggerInterface $logger;
 
-    /**
-     * @param array<int|string, string> $otherCommands
-     * @param array<int, string>        $attributedCommands names (and aliases) collected at
-     *                                                      compile time by CommandLoggerPass
-     */
     public function __construct(
         CommandLogWriter $writer,
         CommandExecutionTracker $commandExecutionTracker,
         bool $enabled,
-        array $otherCommands,
+        SupportedCommandResolver $resolver,
         SensitiveParameterRedactor $sensitiveParameterRedactor,
-        array $attributedCommands = [],
         ?LoggerInterface $logger = null,
     ) {
         $this->writer = $writer;
         $this->commandExecutionTracker = $commandExecutionTracker;
         $this->enabled = $enabled;
-        $this->otherCommands = $otherCommands;
+        $this->resolver = $resolver;
         $this->sensitiveParameterRedactor = $sensitiveParameterRedactor;
-        $this->attributedCommands = $attributedCommands;
         $this->logger = $logger;
     }
 
     public function onConsoleCommand(ConsoleCommandEvent $event): void
     {
         $command = $event->getCommand();
-        if (!$this->enabled || !$command || !$this->isSupportedCommand($command, $this->otherCommands, $this->attributedCommands)) {
+        if (!$this->enabled || !$command || !$this->resolver->supports($command)) {
             return;
         }
 
