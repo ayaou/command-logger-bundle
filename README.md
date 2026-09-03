@@ -189,7 +189,7 @@ It is **disabled by default** and must be opted into explicitly.
 
 ### Enabling the API
 
-Two things gate the API, and both are opt-in:
+Two things gate the API, and both are opt-in — and a third, protecting it, is on you:
 
 **1. Turn on the API services** — this is the flag that matters most, since it is what can expose
 the routes on its own on Symfony 7.4/8.x (see the warning above):
@@ -201,9 +201,18 @@ command_logger:
         enabled: true
 ```
 
-**2. Import the routes and choose a prefix.** The bundle never imports its routes on its own
-behalf; do this explicitly regardless of Symfony version — it is required on 6.4, and harmless
-(if redundant) on 7.4/8.x:
+**2. Find out where the routes actually are**, with `bin/console debug:router`. Do not assume —
+the answer depends on your application's `config/routes.yaml`, and it decides which path you have
+to protect.
+
+*If they are already listed* (Symfony 7.4/8.x default skeleton), step 1 was enough: the
+`routing.controllers` loader picked the controller up the moment it became a service, and the
+endpoints are served at `/command-logs`. **Importing the routes file cannot move them.** That
+import is read after the routes already exist, so a `prefix` set there is silently ignored — you
+would get a 404 on the prefixed path while the real one stays open. Do not import anything.
+
+*If nothing is listed* (Symfony 6.4 skeleton, or any application whose controller import is scoped
+to `App\Controller`), import the routes yourself. Here the prefix does apply:
 
 ```yaml
 # config/routes/command_logger.yaml
@@ -212,14 +221,17 @@ command_logger:
     prefix: /api
 ```
 
-Once both steps are done, the API is reachable under the chosen prefix, e.g. `GET /api/command-logs`. Combine
-this with an `access_control` rule scoped to the same prefix, for example:
+**3. Protect the path `debug:router` printed, not the one you expected.** Guarding
+`^/api/command-logs` while the routes are served at `/command-logs` leaves the API wide open and
+looks protected, which is worse than leaving it visibly unprotected:
 
 ```yaml
 # config/packages/security.yaml
 security:
     access_control:
-        - { path: ^/api/command-logs, roles: ROLE_ADMIN }
+        # Match this against `debug:router` output. Without an import, that is /command-logs;
+        # with one on a 6.4-style skeleton, it is your prefix + /command-logs.
+        - { path: ^/command-logs, roles: ROLE_ADMIN }
 ```
 
 ### Endpoints
