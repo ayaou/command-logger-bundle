@@ -63,3 +63,7 @@ services:
 
   Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker:
     shared: true
+
+  Ayaou\CommandLoggerBundle\Util\CommandLogWriter:
+    arguments:
+      $entityManagerName: '%command_logger.entity_manager%'

@@ -37,6 +37,7 @@ command_logger:
     - credential
     - auth
   max_error_message_length: 65535  # Maximum byte length of the stored error message; longer messages are truncated (multi-byte safe) and suffixed with " [truncated]" (default: 65535, minimum: 100)
+  entity_manager: ~    # Name of the Doctrine entity manager the command_log table lives in. Null (default) targets the default entity manager. See "Using a Separate Entity Manager" below.
 ```
 
 ## Usage
@@ -74,6 +75,56 @@ The logs are stored in the `command_log` table with the following fields:
 - `durationMs` – Execution duration in milliseconds, or `null` when unknown (see "Command Execution Statistics" below)
 - `errorMessage` – Error message if applicable
 - `executionToken` – Unique identifier for execution tracking
+
+## Using a Separate Entity Manager
+
+By default, the `command_log` table lives in the application's **default** Doctrine entity
+manager, alongside the application's own entities. Setting `entity_manager` targets a different,
+named entity manager instead - typically one backed by its own, separate database connection:
+
+```yaml
+# config/packages/doctrine.yaml
+doctrine:
+  dbal:
+    default_connection: default
+    connections:
+      default:
+        # ... your application's usual connection
+      command_logs:
+        url: '%env(resolve:COMMAND_LOGS_DATABASE_URL)%'
+  orm:
+    default_entity_manager: default
+    entity_managers:
+      default:
+        connection: default
+        mappings:
+          App:
+            is_bundle: false
+            dir: '%kernel.project_dir%/src/Entity'
+            prefix: App\Entity
+      command_logs:
+        connection: command_logs
+        # No "mappings" key needed here for CommandLoggerBundle: the bundle adds its own
+        # mapping to this entity manager automatically, based on "entity_manager" below.
+```
+
+```yaml
+# config/packages/command_logger.yaml
+command_logger:
+  entity_manager: command_logs
+```
+
+Two consequences follow from this, both intentional:
+
+- **Schema creation needs `--em=command_logs`.** Since `command_log` is no longer part of the
+  default entity manager, Doctrine's own commands must be told which one to target, e.g.
+  `bin/console doctrine:schema:update --em=command_logs --force` (or the equivalent migration
+  command for your setup).
+- **The log no longer participates in the application's database transactions.** A command log
+  entry lives in its own connection, so it is written independently of - and survives - a
+  rollback of whatever the application itself was doing. That is precisely the point of moving it
+  to a separate database: an execution log should still exist even when the command it describes
+  failed and rolled back its own changes.
 
 ## Failure Behavior
 The bundle never lets its own storage break the command it is logging. If writing to the

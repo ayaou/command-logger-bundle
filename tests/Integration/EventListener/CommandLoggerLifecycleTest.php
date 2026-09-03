@@ -25,6 +25,7 @@ use Ayaou\CommandLoggerBundle\Util\CommandLogWriter;
 use Ayaou\CommandLoggerBundle\Util\SensitiveParameterRedactor;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Console\ConsoleEvents;
 use Symfony\Component\Console\Event\ConsoleCommandEvent;
 use Symfony\Component\Console\Event\ConsoleErrorEvent;
@@ -55,11 +56,14 @@ class CommandLoggerLifecycleTest extends AppKernelTestCase
 {
     private EntityManagerInterface $entityManager;
 
+    private ManagerRegistry $managerRegistry;
+
     protected function setUp(): void
     {
         self::bootKernel();
 
         $this->entityManager = self::getContainer()->get('doctrine.orm.entity_manager');
+        $this->managerRegistry = self::getContainer()->get('doctrine');
 
         $schemaTool = new SchemaTool($this->entityManager);
         $metadata = $this->entityManager->getClassMetadata(CommandLog::class);
@@ -235,7 +239,7 @@ class CommandLoggerLifecycleTest extends AppKernelTestCase
     private function createDispatcher(bool $enabled, array $otherCommands): EventDispatcher
     {
         $tracker = new CommandExecutionTracker();
-        $writer = new CommandLogWriter($this->entityManager);
+        $writer = new CommandLogWriter($this->managerRegistry);
 
         $startListener = new CommandStartListener($writer, $tracker, $enabled, $otherCommands, new SensitiveParameterRedactor([]));
         $terminateListener = new CommandTerminateListener($writer, $tracker, $enabled, $otherCommands);

@@ -31,6 +31,7 @@ class CommandLoggerExtensionTest extends TestCase
     {
         $this->extension = new CommandLoggerExtension();
         $this->container = new ContainerBuilder();
+        $this->container->registerExtension($this->extension);
     }
 
     public function testAlias(): void
@@ -99,5 +100,90 @@ class CommandLoggerExtensionTest extends TestCase
         $this->assertTrue($this->container->hasDefinition(CommandLogController::class));
         $this->assertTrue($this->container->hasDefinition(JsonLdFactory::class));
         $this->assertTrue($this->container->hasDefinition(ApiExceptionListener::class));
+    }
+
+    public function testEntityManagerParameterDefaultsToNull(): void
+    {
+        $this->extension->load([[]], $this->container);
+
+        $this->assertNull($this->container->getParameter('command_logger.entity_manager'));
+    }
+
+    public function testEntityManagerParameterIsSetWhenConfigured(): void
+    {
+        $this->extension->load([['entity_manager' => 'reporting']], $this->container);
+
+        $this->assertSame('reporting', $this->container->getParameter('command_logger.entity_manager'));
+    }
+
+    /**
+     * With no "entity_manager" configured, prepend() must inject the mapping in exactly the
+     * same shape it always has: the short "orm.mappings" form targeting the default entity
+     * manager. This is the non-regression guarantee for every existing installation.
+     */
+    public function testPrependWithDefaultEntityManagerInjectsShortFormMapping(): void
+    {
+        $this->container->registerExtension(new FakeDoctrineExtension());
+        $this->container->loadFromExtension('command_logger', []);
+
+        $this->extension->prepend($this->container);
+
+        $this->assertSame([
+            [
+                'orm' => [
+                    'mappings' => [
+                        'CommandLoggerBundle' => [
+                            'is_bundle' => true,
+                            'type' => 'attribute',
+                            'dir' => 'src/Entity',
+                            'prefix' => 'Ayaou\CommandLoggerBundle\Entity',
+                            'alias' => 'CommandLogger',
+                        ],
+                    ],
+                ],
+            ],
+        ], $this->container->getExtensionConfig('doctrine'));
+    }
+
+    /**
+     * With a named "entity_manager", the mapping must be injected under
+     * "orm.entity_managers.<name>.mappings" instead - and NOT under the short "orm.mappings"
+     * form, since DoctrineBundle refuses to see both at once.
+     */
+    public function testPrependWithNamedEntityManagerInjectsLongFormMapping(): void
+    {
+        $this->container->registerExtension(new FakeDoctrineExtension());
+        $this->container->loadFromExtension('command_logger', ['entity_manager' => 'reporting']);
+
+        $this->extension->prepend($this->container);
+
+        $this->assertSame([
+            [
+                'orm' => [
+                    'entity_managers' => [
+                        'reporting' => [
+                            'mappings' => [
+                                'CommandLoggerBundle' => [
+                                    'is_bundle' => true,
+                                    'type' => 'attribute',
+                                    'dir' => 'src/Entity',
+                                    'prefix' => 'Ayaou\CommandLoggerBundle\Entity',
+                                    'alias' => 'CommandLogger',
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ], $this->container->getExtensionConfig('doctrine'));
+
+        $this->assertArrayNotHasKey('mappings', $this->container->getExtensionConfig('doctrine')[0]['orm']);
+    }
+
+    public function testPrependDoesNothingWithoutDoctrineExtension(): void
+    {
+        $this->extension->prepend($this->container);
+
+        $this->assertSame([], $this->container->getExtensionConfig('doctrine'));
     }
 }
