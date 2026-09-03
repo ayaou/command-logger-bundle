@@ -19,6 +19,7 @@ use Ayaou\CommandLoggerBundle\Repository\CommandLogRepository;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Exception\InvalidArgumentException;
+use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -196,6 +197,19 @@ class ShowCommandLoggerEntriesCommand extends Command
             foreach ($fields as $label => $value) {
                 $io->write("<info>$label:</info> $value\n");
             }
+
+            // Multi-line by nature, so it gets its own block rather than being squeezed
+            // onto a "label: value" line. Escaped because it is arbitrary text a command
+            // wrote: an unescaped <fg=red> or </> in it would be read as console markup
+            // here instead of being shown as the command printed it.
+            $capturedOutput = $entry->getOutput();
+            if (null !== $capturedOutput && '' !== $capturedOutput) {
+                $io->newLine();
+                $io->write("<info>Output:</info>\n");
+                $io->write(OutputFormatter::escape($capturedOutput));
+                $io->newLine();
+            }
+
             $io->newLine();
         } else {
             $rows = [];
