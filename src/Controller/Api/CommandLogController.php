@@ -15,6 +15,7 @@ namespace Ayaou\CommandLoggerBundle\Controller\Api;
 
 use Ayaou\CommandLoggerBundle\Dto\CommandLogFilter;
 use Ayaou\CommandLoggerBundle\Repository\CommandLogRepository;
+use Ayaou\CommandLoggerBundle\Repository\CommandLogStatistics;
 use Ayaou\CommandLoggerBundle\Service\JsonLdFactory;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -38,6 +39,7 @@ class CommandLogController extends AbstractController
 
     public function __construct(
         private readonly CommandLogRepository $repository,
+        private readonly CommandLogStatistics $statistics,
         private readonly JsonLdFactory $jsonLdFactory,
     ) {
     }
@@ -68,8 +70,8 @@ class CommandLogController extends AbstractController
         #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)]
         CommandLogFilter $filter = new CommandLogFilter(),
     ): JsonResponse {
-        $statistics = $this->repository->getStatistics($filter);
-        $byCommand = $this->repository->getStatisticsByCommand($filter, $filter->limit);
+        $statistics = $this->statistics->getStatistics($filter);
+        $byCommand = $this->statistics->getStatisticsByCommand($filter, $filter->limit);
 
         $summary = $statistics;
         unset($summary['byExitCode']);

@@ -13,8 +13,10 @@ declare(strict_types=1);
 
 namespace Ayaou\CommandLoggerBundle\Tests\Integration\Repository;
 
+use Ayaou\CommandLoggerBundle\Dto\CommandLogFilter;
 use Ayaou\CommandLoggerBundle\Entity\CommandLog;
 use Ayaou\CommandLoggerBundle\Repository\CommandLogRepository;
+use Ayaou\CommandLoggerBundle\Repository\CommandLogStatistics;
 use Ayaou\CommandLoggerBundle\Tests\Integration\AppKernelTestCase;
 
 class CommandLogRepositoryTest extends AppKernelTestCase
@@ -85,5 +87,68 @@ class CommandLogRepositoryTest extends AppKernelTestCase
         $remainingLogs = $this->repository->findAll();
         $this->assertCount(1, $remainingLogs);
         $this->assertEquals('test:new', $remainingLogs[0]->getCommandName());
+    }
+
+    /**
+     * @deprecated coverage: CommandLogRepository::getStatistics() is a one-line delegation
+     * to CommandLogStatistics, kept only so code that injects the repository directly is not
+     * broken. This proves the delegation actually returns what the new class returns.
+     */
+    public function testGetStatisticsDelegatesToCommandLogStatistics(): void
+    {
+        $entityManager = self::getContainer()->get('doctrine.orm.entity_manager');
+        $statistics = self::getContainer()->get(CommandLogStatistics::class);
+
+        $log = new CommandLog();
+        $log->setCommandName('test:delegation')
+            ->setStartTime(new \DateTimeImmutable())
+            ->setEndTime(new \DateTimeImmutable())
+            ->setExitCode(0)
+            ->setDurationMs(100)
+            ->setExecutionToken('delegation-token');
+
+        $entityManager->persist($log);
+        $entityManager->flush();
+
+        $filter = new CommandLogFilter();
+
+        $this->assertSame($statistics->getStatistics($filter), $this->repository->getStatistics($filter));
+    }
+
+    /**
+     * @deprecated coverage: same as testGetStatisticsDelegatesToCommandLogStatistics(), for
+     * CommandLogRepository::getStatisticsByCommand()
+     */
+    public function testGetStatisticsByCommandDelegatesToCommandLogStatistics(): void
+    {
+        $entityManager = self::getContainer()->get('doctrine.orm.entity_manager');
+        $statistics = self::getContainer()->get(CommandLogStatistics::class);
+
+        $first = new CommandLog();
+        $first->setCommandName('test:delegation-a')
+            ->setStartTime(new \DateTimeImmutable())
+            ->setEndTime(new \DateTimeImmutable())
+            ->setExitCode(0)
+            ->setDurationMs(100)
+            ->setExecutionToken('delegation-token-a');
+
+        $second = new CommandLog();
+        $second->setCommandName('test:delegation-b')
+            ->setStartTime(new \DateTimeImmutable())
+            ->setEndTime(new \DateTimeImmutable())
+            ->setExitCode(1)
+            ->setDurationMs(200)
+            ->setExecutionToken('delegation-token-b');
+
+        $entityManager->persist($first);
+        $entityManager->persist($second);
+        $entityManager->flush();
+
+        $filter = new CommandLogFilter();
+
+        $this->assertSame(
+            $statistics->getStatisticsByCommand($filter, 10),
+            $this->repository->getStatisticsByCommand($filter, 10),
+        );
     }
 }
