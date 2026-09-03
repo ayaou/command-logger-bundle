@@ -15,6 +15,13 @@ namespace Ayaou\CommandLoggerBundle\Util;
 
 use Symfony\Component\Console\Command\Command;
 
+/**
+ * Correlates the console.command, console.terminate and console.error events of one execution.
+ *
+ * Plumbing for this bundle's listeners: it holds no contract anything outside them relies on.
+ *
+ * @internal
+ */
 class CommandExecutionTracker
 {
     /**
