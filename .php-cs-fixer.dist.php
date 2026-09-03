@@ -10,12 +10,6 @@ $finder = (new PhpCsFixer\Finder())
 return (new PhpCsFixer\Config())
     ->setRules([
         '@Symfony' => true,
-        'binary_operator_spaces' => [
-            'operators' => [
-                '='  => 'align_single_space_minimal',
-                '=>' => 'align_single_space_minimal',
-            ]
-        ],
         'class_attributes_separation' => [
             'elements' => [
                 'const'    => 'one', // Adds an empty line between constants

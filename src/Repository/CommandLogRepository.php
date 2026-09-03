@@ -211,9 +211,9 @@ class CommandLogRepository extends ServiceEntityRepository
     {
         $qb = $this->applyFilter(
             $this->createQueryBuilder('cl')->select(
-                'AVG(cl.durationMs) AS avgDuration, MIN(cl.durationMs) AS minDuration, MAX(cl.durationMs) AS maxDuration, COUNT(cl.durationMs) AS durationCount'
+                'AVG(cl.durationMs) AS avgDuration, MIN(cl.durationMs) AS minDuration, MAX(cl.durationMs) AS maxDuration, COUNT(cl.durationMs) AS durationCount',
             ),
-            $filter
+            $filter,
         )->andWhere('cl.durationMs IS NOT NULL');
 
         // An aggregate query with no GROUP BY always returns exactly one row, even against an
@@ -231,7 +231,7 @@ class CommandLogRepository extends ServiceEntityRepository
     {
         $qb = $this->applyFilter(
             $this->createQueryBuilder('cl')->select('cl.commandName AS commandName, COUNT(cl.id) AS entryCount'),
-            $filter
+            $filter,
         )->groupBy('cl.commandName');
 
         if (null !== $extraCondition) {
@@ -253,9 +253,9 @@ class CommandLogRepository extends ServiceEntityRepository
     {
         $qb = $this->applyFilter(
             $this->createQueryBuilder('cl')->select(
-                'cl.commandName AS commandName, AVG(cl.durationMs) AS avgDuration, MIN(cl.durationMs) AS minDuration, MAX(cl.durationMs) AS maxDuration, COUNT(cl.durationMs) AS durationCount'
+                'cl.commandName AS commandName, AVG(cl.durationMs) AS avgDuration, MIN(cl.durationMs) AS minDuration, MAX(cl.durationMs) AS maxDuration, COUNT(cl.durationMs) AS durationCount',
             ),
-            $filter
+            $filter,
         )->andWhere('cl.durationMs IS NOT NULL')->groupBy('cl.commandName');
 
         $stats = [];
@@ -273,7 +273,7 @@ class CommandLogRepository extends ServiceEntityRepository
     {
         $qb = $this->applyFilter(
             $this->createQueryBuilder('cl')->select('cl.exitCode AS exitCode, COUNT(cl.id) AS entryCount'),
-            $filter
+            $filter,
         )->andWhere('cl.exitCode IS NOT NULL')->groupBy('cl.exitCode');
 
         $counts = [];

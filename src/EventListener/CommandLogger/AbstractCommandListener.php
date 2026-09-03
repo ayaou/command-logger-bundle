@@ -21,12 +21,12 @@ class AbstractCommandListener
     /**
      * @param array<int|string, string> $otherCommands
      * @param array<int, string>        $attributedCommands names (and aliases) collected at compile
-     *                                                       time by CommandLoggerPass from every
-     *                                                       #[CommandLogger] class - this is what
-     *                                                       covers invokable-style commands, whose
-     *                                                       runtime Command instance has been
-     *                                                       rewritten by Symfony's AddConsoleCommandPass
-     *                                                       and can no longer be reflected upon directly
+     *                                                      time by CommandLoggerPass from every
+     *                                                      #[CommandLogger] class - this is what
+     *                                                      covers invokable-style commands, whose
+     *                                                      runtime Command instance has been
+     *                                                      rewritten by Symfony's AddConsoleCommandPass
+     *                                                      and can no longer be reflected upon directly
      */
     protected function isSupportedCommand(Command $command, array $otherCommands, array $attributedCommands = []): bool
     {

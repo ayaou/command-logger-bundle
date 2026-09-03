@@ -54,7 +54,7 @@ class CommandLogController extends AbstractController
             $paginator,
             $request,
             $filter,
-            ['command_log:list']
+            ['command_log:list'],
         );
     }
 
@@ -81,7 +81,7 @@ class CommandLogController extends AbstractController
                 'byCommand' => $byCommand,
             ],
             'CommandLogStatistics',
-            'command_logger_api_stats'
+            'command_logger_api_stats',
         );
     }
 
@@ -100,7 +100,7 @@ class CommandLogController extends AbstractController
             $commandLog,
             'command_logger_api_item',
             ['id' => $commandLog->getId()],
-            ['command_log:item']
+            ['command_log:item'],
         );
     }
 }

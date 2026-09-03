@@ -28,8 +28,8 @@ class SensitiveParameterRedactor
 
     /**
      * @param array<int, string> $sensitiveParameters Case-insensitive substrings matched
-     *                                                 against parameter names. An empty
-     *                                                 array disables redaction entirely.
+     *                                                against parameter names. An empty
+     *                                                array disables redaction entirely.
      */
     public function __construct(array $sensitiveParameters)
     {

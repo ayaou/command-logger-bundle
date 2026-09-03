@@ -39,7 +39,7 @@ class CommandTerminateListener extends AbstractCommandListener
     /**
      * @param array<int|string, string> $otherCommands
      * @param array<int, string>        $attributedCommands names (and aliases) collected at
-     *                                                       compile time by CommandLoggerPass
+     *                                                      compile time by CommandLoggerPass
      */
     public function __construct(
         EntityManagerInterface $entityManager,
