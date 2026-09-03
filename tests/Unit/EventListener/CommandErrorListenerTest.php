@@ -15,10 +15,8 @@ namespace Ayaou\CommandLoggerBundle\Tests\Unit\EventListener;
 
 use Ayaou\CommandLoggerBundle\Entity\CommandLog;
 use Ayaou\CommandLoggerBundle\EventListener\CommandLogger\CommandErrorListener;
-use Ayaou\CommandLoggerBundle\Repository\CommandLogRepository;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\Persistence\ObjectRepository;
+use Ayaou\CommandLoggerBundle\Util\CommandLogWriter;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -31,7 +29,7 @@ class CommandErrorListenerTest extends TestCase
 {
     private CommandErrorListener $listener;
 
-    private MockObject|EntityManagerInterface $entityManager;
+    private MockObject|CommandLogWriter $writer;
 
     private MockObject|CommandExecutionTracker $commandExecutionTracker;
 
@@ -43,26 +41,19 @@ class CommandErrorListenerTest extends TestCase
 
     private MockObject|OutputInterface $output;
 
-    private MockObject|ObjectRepository $repository;
-
     protected function setUp(): void
     {
-        $this->entityManager = $this->createMock(EntityManagerInterface::class);
+        $this->writer = $this->createMock(CommandLogWriter::class);
         $this->commandExecutionTracker = $this->createMock(CommandExecutionTracker::class);
         $this->command = new TestCommand();
         $this->input = $this->createMock(InputInterface::class);
         $this->output = $this->createMock(OutputInterface::class);
-        $this->repository = $this->createMock(CommandLogRepository::class); // Changed to EntityRepository
 
         $error = new \Exception('Test error');
         $this->event = new ConsoleErrorEvent($this->input, $this->output, $error, $this->command);
 
-        $this->entityManager->method('getRepository')
-            ->with(CommandLog::class)
-            ->willReturn($this->repository);
-
         $this->listener = new CommandErrorListener(
-            $this->entityManager,
+            $this->writer,
             $this->commandExecutionTracker,
             true, // Enabled by default
             [],
@@ -71,8 +62,8 @@ class CommandErrorListenerTest extends TestCase
 
     public function testDoesNothingWhenDisabled(): void
     {
-        $listener = new CommandErrorListener($this->entityManager, $this->commandExecutionTracker, false, []);
-        $this->entityManager->expects($this->never())->method('getRepository');
+        $listener = new CommandErrorListener($this->writer, $this->commandExecutionTracker, false, []);
+        $this->writer->expects($this->never())->method('markErrored');
 
         $listener->onConsoleError($this->event);
     }
@@ -80,7 +71,7 @@ class CommandErrorListenerTest extends TestCase
     public function testDoesNothingWhenNoCommand(): void
     {
         $this->event = new ConsoleErrorEvent($this->input, $this->output, new \Exception('Test error'), null);
-        $this->entityManager->expects($this->never())->method('getRepository');
+        $this->writer->expects($this->never())->method('markErrored');
 
         $this->listener->onConsoleError($this->event);
     }
@@ -88,18 +79,7 @@ class CommandErrorListenerTest extends TestCase
     public function testDoesNothingWhenNoExecutionToken(): void
     {
         $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn(null);
-        $this->entityManager->expects($this->never())->method('getRepository');
-
-        $this->listener->onConsoleError($this->event);
-    }
-
-    public function testDoesNothingWhenNoLogFound(): void
-    {
-        $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn('some-token');
-        $this->repository->method('findOneBy')
-            ->with(['executionToken' => 'some-token'])
-            ->willReturn(null);
-        $this->entityManager->expects($this->never())->method('persist');
+        $this->writer->expects($this->never())->method('markErrored');
 
         $this->listener->onConsoleError($this->event);
     }
@@ -108,12 +88,8 @@ class CommandErrorListenerTest extends TestCase
     {
         $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn('some-token');
 
-        $log = $this->createMock(CommandLog::class);
-        $this->repository->method('findOneBy')->with(['executionToken' => 'some-token'])->willReturn($log);
-
-        $log->expects($this->once())->method('setErrorMessage');
-        $this->entityManager->expects($this->once())->method('persist')->with($log);
-        $this->entityManager->expects($this->once())->method('flush');
+        $this->writer->expects($this->once())->method('markErrored')
+            ->with('some-token', $this->callback('is_string'));
 
         $this->listener->onConsoleError($this->event);
     }
@@ -144,7 +120,7 @@ class CommandErrorListenerTest extends TestCase
     public function testLongErrorMessageIsTruncatedAndSuffixed(): void
     {
         $listener = new CommandErrorListener(
-            $this->entityManager,
+            $this->writer,
             $this->commandExecutionTracker,
             true,
             [],
@@ -153,16 +129,16 @@ class CommandErrorListenerTest extends TestCase
 
         $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn('some-token');
 
-        $log = $this->createMock(CommandLog::class);
-        $this->repository->method('findOneBy')->with(['executionToken' => 'some-token'])->willReturn($log);
-
         $storedMessage = null;
-        $log->expects($this->once())->method('setErrorMessage')
-            ->with($this->callback(function (string $message) use (&$storedMessage) {
-                $storedMessage = $message;
+        $this->writer->expects($this->once())->method('markErrored')
+            ->with(
+                'some-token',
+                $this->callback(function (string $message) use (&$storedMessage) {
+                    $storedMessage = $message;
 
-                return true;
-            }));
+                    return true;
+                }),
+            );
 
         // The exception message alone, plus its trace, is far longer than the 100-byte limit.
         $error = new \Exception(str_repeat('a', 500));
@@ -178,7 +154,7 @@ class CommandErrorListenerTest extends TestCase
     public function testShortErrorMessageIsNotTruncated(): void
     {
         $listener = new CommandErrorListener(
-            $this->entityManager,
+            $this->writer,
             $this->commandExecutionTracker,
             true,
             [],
@@ -187,16 +163,16 @@ class CommandErrorListenerTest extends TestCase
 
         $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn('some-token');
 
-        $log = $this->createMock(CommandLog::class);
-        $this->repository->method('findOneBy')->with(['executionToken' => 'some-token'])->willReturn($log);
-
         $storedMessage = null;
-        $log->expects($this->once())->method('setErrorMessage')
-            ->with($this->callback(function (string $message) use (&$storedMessage) {
-                $storedMessage = $message;
+        $this->writer->expects($this->once())->method('markErrored')
+            ->with(
+                'some-token',
+                $this->callback(function (string $message) use (&$storedMessage) {
+                    $storedMessage = $message;
 
-                return true;
-            }));
+                    return true;
+                }),
+            );
 
         $error = new \Exception('Short error');
         $event = new ConsoleErrorEvent($this->input, $this->output, $error, $this->command);
@@ -208,52 +184,23 @@ class CommandErrorListenerTest extends TestCase
         $this->assertStringNotContainsString('[truncated]', $storedMessage);
     }
 
-    public function testFindOneByFailureDoesNotBreakTheCommand(): void
+    public function testWriteFailureDoesNotBreakTheCommand(): void
     {
         $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn('some-token');
-        $this->repository->expects($this->once())->method('findOneBy')
-            ->willThrowException(new \RuntimeException('no such table: command_log'));
-        $this->entityManager->expects($this->never())->method('persist');
 
-        $this->listener->onConsoleError($this->event);
-
-        $this->addToAssertionCount(1);
-    }
-
-    public function testPersistFailureDoesNotBreakTheCommand(): void
-    {
-        $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn('some-token');
-        $log = $this->createMock(CommandLog::class);
-        $this->repository->method('findOneBy')->willReturn($log);
-
-        $this->entityManager->expects($this->once())->method('persist')
+        $this->writer->expects($this->once())->method('markErrored')
             ->willThrowException(new \RuntimeException('Connection refused'));
-        $this->entityManager->expects($this->never())->method('flush');
 
         $this->listener->onConsoleError($this->event);
 
-        $this->addToAssertionCount(1);
-    }
-
-    public function testFlushFailureDoesNotBreakTheCommand(): void
-    {
-        $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn('some-token');
-        $log = $this->createMock(CommandLog::class);
-        $this->repository->method('findOneBy')->willReturn($log);
-
-        $this->entityManager->expects($this->once())->method('persist');
-        $this->entityManager->expects($this->once())->method('flush')
-            ->willThrowException(new \RuntimeException('Connection lost'));
-
-        $this->listener->onConsoleError($this->event);
-
+        // Reaching this line proves the exception raised by CommandLogWriter::markErrored() never propagated out.
         $this->addToAssertionCount(1);
     }
 
     public function testLogsErrorWithCommandNameWhenLoggingFails(): void
     {
         $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn('some-token');
-        $this->repository->method('findOneBy')
+        $this->writer->method('markErrored')
             ->willThrowException(new \RuntimeException('no such table: command_log'));
 
         $logger = $this->createMock(LoggerInterface::class);
@@ -267,7 +214,7 @@ class CommandErrorListenerTest extends TestCase
             );
 
         $listener = new CommandErrorListener(
-            $this->entityManager,
+            $this->writer,
             $this->commandExecutionTracker,
             true,
             [],
@@ -282,11 +229,11 @@ class CommandErrorListenerTest extends TestCase
     public function testDoesNotBreakWhenNoLoggerIsConfigured(): void
     {
         $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn('some-token');
-        $this->repository->method('findOneBy')
+        $this->writer->method('markErrored')
             ->willThrowException(new \RuntimeException('no such table: command_log'));
 
         $listener = new CommandErrorListener(
-            $this->entityManager,
+            $this->writer,
             $this->commandExecutionTracker,
             true,
             [],
@@ -306,7 +253,7 @@ class CommandErrorListenerTest extends TestCase
         $event = new ConsoleErrorEvent($this->input, $this->output, $originalError, $this->command);
 
         $this->commandExecutionTracker->method('getToken')->with($this->command)->willReturn('some-token');
-        $this->repository->method('findOneBy')
+        $this->writer->method('markErrored')
             ->willThrowException(new \RuntimeException('no such table: command_log'));
 
         $this->listener->onConsoleError($event);

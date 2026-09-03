@@ -15,8 +15,8 @@ namespace Ayaou\CommandLoggerBundle\Tests\Unit\EventListener;
 
 use Ayaou\CommandLoggerBundle\EventListener\CommandLogger\CommandStartListener;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
+use Ayaou\CommandLoggerBundle\Util\CommandLogWriter;
 use Ayaou\CommandLoggerBundle\Util\SensitiveParameterRedactor;
-use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\Exception;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -26,7 +26,7 @@ class AbstractCommandListenerTest extends TestCase
 {
     private CommandStartListener $listener;
 
-    private EntityManagerInterface|MockObject $entityManager;
+    private CommandLogWriter|MockObject $writer;
 
     private CommandExecutionTracker|MockObject $commandExecutionTracker;
 
@@ -35,10 +35,10 @@ class AbstractCommandListenerTest extends TestCase
      */
     protected function setUp(): void
     {
-        $this->entityManager = $this->createMock(EntityManagerInterface::class);
+        $this->writer = $this->createMock(CommandLogWriter::class);
         $this->commandExecutionTracker = $this->createMock(CommandExecutionTracker::class);
         $this->listener = new CommandStartListener(
-            $this->entityManager,
+            $this->writer,
             $this->commandExecutionTracker,
             true, // enabled
             [], // otherCommands
@@ -90,7 +90,7 @@ class AbstractCommandListenerTest extends TestCase
     {
         $lazyCommand = new TestCommand();
         $this->listener = new CommandStartListener(
-            $this->entityManager,
+            $this->writer,
             $this->commandExecutionTracker,
             true,
             [],
@@ -106,7 +106,7 @@ class AbstractCommandListenerTest extends TestCase
     {
         $lazyCommand = new LazyCommand('app:my-command', [], '', false, fn () => new TestCommand());
         $this->listener = new CommandStartListener(
-            $this->entityManager,
+            $this->writer,
             $this->commandExecutionTracker,
             true,
             [],

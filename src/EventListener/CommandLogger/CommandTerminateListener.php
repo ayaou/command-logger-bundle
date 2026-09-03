@@ -13,15 +13,17 @@ declare(strict_types=1);
 
 namespace Ayaou\CommandLoggerBundle\EventListener\CommandLogger;
 
-use Ayaou\CommandLoggerBundle\Entity\CommandLog;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
-use Doctrine\ORM\EntityManagerInterface;
+use Ayaou\CommandLoggerBundle\Util\CommandLogWriter;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Event\ConsoleTerminateEvent;
 
+/**
+ * @internal
+ */
 class CommandTerminateListener extends AbstractCommandListener
 {
-    private EntityManagerInterface $entityManager;
+    private CommandLogWriter $writer;
 
     private CommandExecutionTracker $commandExecutionTracker;
 
@@ -45,14 +47,14 @@ class CommandTerminateListener extends AbstractCommandListener
      *                                                      compile time by CommandLoggerPass
      */
     public function __construct(
-        EntityManagerInterface $entityManager,
+        CommandLogWriter $writer,
         CommandExecutionTracker $commandExecutionTracker,
         bool $enabled,
         array $otherCommands = [],
         array $attributedCommands = [],
         ?LoggerInterface $logger = null,
     ) {
-        $this->entityManager = $entityManager;
+        $this->writer = $writer;
         $this->commandExecutionTracker = $commandExecutionTracker;
         $this->enabled = $enabled;
         $this->otherCommands = $otherCommands;
@@ -79,17 +81,10 @@ class CommandTerminateListener extends AbstractCommandListener
         $durationMs = null !== $startTimestamp ? intdiv(hrtime(true) - $startTimestamp, 1_000_000) : null;
 
         try {
-            $log = $this->entityManager->getRepository(CommandLog::class)
-                ->findOneBy(['executionToken' => $executionToken]);
-
-            if ($log) {
-                $log->setEndTime(new \DateTimeImmutable())
-                    ->setExitCode($event->getExitCode())
-                    ->setDurationMs($durationMs);
-
-                $this->entityManager->persist($log);
-                $this->entityManager->flush();
-            }
+            // A single UPDATE keyed on executionToken: no SELECT is issued first. A token
+            // with no matching row (e.g. the start write itself previously failed) simply
+            // updates zero rows - there is nothing more to do about it here.
+            $this->writer->markTerminated($executionToken, new \DateTimeImmutable(), $event->getExitCode(), $durationMs);
         } catch (\Throwable $exception) {
             // A logging failure must never take the user's command down with it: give up on
             // writing this entry and let the command run its course.

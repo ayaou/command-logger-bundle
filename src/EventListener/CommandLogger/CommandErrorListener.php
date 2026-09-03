@@ -13,17 +13,19 @@ declare(strict_types=1);
 
 namespace Ayaou\CommandLoggerBundle\EventListener\CommandLogger;
 
-use Ayaou\CommandLoggerBundle\Entity\CommandLog;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
-use Doctrine\ORM\EntityManagerInterface;
+use Ayaou\CommandLoggerBundle\Util\CommandLogWriter;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Event\ConsoleErrorEvent;
 
+/**
+ * @internal
+ */
 class CommandErrorListener extends AbstractCommandListener
 {
     private const TRUNCATION_SUFFIX = ' [truncated]';
 
-    private EntityManagerInterface $entityManager;
+    private CommandLogWriter $writer;
 
     private CommandExecutionTracker $commandExecutionTracker;
 
@@ -50,7 +52,7 @@ class CommandErrorListener extends AbstractCommandListener
      *                                                         compile time by CommandLoggerPass
      */
     public function __construct(
-        EntityManagerInterface $entityManager,
+        CommandLogWriter $writer,
         CommandExecutionTracker $commandExecutionTracker,
         bool $enabled,
         array $otherCommands = [],
@@ -58,7 +60,7 @@ class CommandErrorListener extends AbstractCommandListener
         array $attributedCommands = [],
         ?LoggerInterface $logger = null,
     ) {
-        $this->entityManager = $entityManager;
+        $this->writer = $writer;
         $this->commandExecutionTracker = $commandExecutionTracker;
         $this->enabled = $enabled;
         $this->otherCommands = $otherCommands;
@@ -81,16 +83,12 @@ class CommandErrorListener extends AbstractCommandListener
         }
 
         try {
-            $log = $this->entityManager->getRepository(CommandLog::class)
-                ->findOneBy(['executionToken' => $executionToken]);
+            $errorDetails = $this->getErrorDetails($event->getError());
 
-            if ($log) {
-                $errorDetails = $this->getErrorDetails($event->getError());
-                $log->setErrorMessage($this->truncate(implode("\n\n\n", $errorDetails)));
-
-                $this->entityManager->persist($log);
-                $this->entityManager->flush();
-            }
+            // A single UPDATE keyed on executionToken: no SELECT is issued first. A token
+            // with no matching row (e.g. the start write itself previously failed) simply
+            // updates zero rows - there is nothing more to do about it here.
+            $this->writer->markErrored($executionToken, $this->truncate(implode("\n\n\n", $errorDetails)));
         } catch (\Throwable $exception) {
             // This runs while a business exception is being handled: never touch $event or the
             // exception it carries here - only the write to the log table is given up on. The

@@ -21,6 +21,7 @@ use Ayaou\CommandLoggerBundle\Tests\Integration\AppKernelTestCase;
 use Ayaou\CommandLoggerBundle\Tests\Unit\EventListener\TestCommand;
 use Ayaou\CommandLoggerBundle\Tests\Unit\EventListener\TestCommandWithoutAttribute;
 use Ayaou\CommandLoggerBundle\Util\CommandExecutionTracker;
+use Ayaou\CommandLoggerBundle\Util\CommandLogWriter;
 use Ayaou\CommandLoggerBundle\Util\SensitiveParameterRedactor;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
@@ -234,10 +235,11 @@ class CommandLoggerLifecycleTest extends AppKernelTestCase
     private function createDispatcher(bool $enabled, array $otherCommands): EventDispatcher
     {
         $tracker = new CommandExecutionTracker();
+        $writer = new CommandLogWriter($this->entityManager);
 
-        $startListener = new CommandStartListener($this->entityManager, $tracker, $enabled, $otherCommands, new SensitiveParameterRedactor([]));
-        $terminateListener = new CommandTerminateListener($this->entityManager, $tracker, $enabled, $otherCommands);
-        $errorListener = new CommandErrorListener($this->entityManager, $tracker, $enabled, $otherCommands);
+        $startListener = new CommandStartListener($writer, $tracker, $enabled, $otherCommands, new SensitiveParameterRedactor([]));
+        $terminateListener = new CommandTerminateListener($writer, $tracker, $enabled, $otherCommands);
+        $errorListener = new CommandErrorListener($writer, $tracker, $enabled, $otherCommands);
 
         $dispatcher = new EventDispatcher();
         $dispatcher->addListener(ConsoleEvents::COMMAND, [$startListener, 'onConsoleCommand']);
