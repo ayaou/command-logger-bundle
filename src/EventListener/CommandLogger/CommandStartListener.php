@@ -77,6 +77,7 @@ class CommandStartListener extends AbstractCommandListener
         $executionToken = Uuid::v7()->toRfc4122();
 
         $this->commandExecutionTracker->setToken($command, $executionToken);
+        $this->commandExecutionTracker->setStartTimestamp($command, hrtime(true));
 
         $arguments = $this->sensitiveParameterRedactor->redact($input->getArguments() + $input->getOptions());
 

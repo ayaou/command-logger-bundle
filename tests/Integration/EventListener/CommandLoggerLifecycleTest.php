@@ -120,6 +120,7 @@ class CommandLoggerLifecycleTest extends AppKernelTestCase
 
         $this->assertNull($startedLog->getEndTime());
         $this->assertNull($startedLog->getExitCode());
+        $this->assertNull($startedLog->getDurationMs());
 
         // Force a fresh SELECT so the assertions below prove the row was really persisted,
         // not just mutated on the already-loaded object still sitting in the identity map.
@@ -135,6 +136,32 @@ class CommandLoggerLifecycleTest extends AppKernelTestCase
         $this->assertInstanceOf(\DateTimeImmutable::class, $terminatedLog->getEndTime());
         $this->assertSame(0, $terminatedLog->getExitCode());
         $this->assertCount(1, $repository->findAll());
+
+        // durationMs must never be derived from startTime/endTime: both are
+        // datetime_immutable columns reloaded from the database, which only store to the
+        // second, so that arithmetic would always yield a multiple of 1000ms. It is instead
+        // computed from the hrtime(true) instant CommandExecutionTracker recorded in memory,
+        // so it can legitimately be 0 on a very fast test run - only its absence is wrong.
+        $this->assertIsInt($terminatedLog->getDurationMs());
+        $this->assertGreaterThanOrEqual(0, $terminatedLog->getDurationMs());
+    }
+
+    public function testCommandWithoutTerminateEventLeavesDurationNull(): void
+    {
+        $dispatcher = $this->createDispatcher(true, []);
+
+        $dispatcher->dispatch(
+            new ConsoleCommandEvent(new TestCommand(), new ArrayInput([]), new BufferedOutput()),
+            ConsoleEvents::COMMAND,
+        );
+
+        $log = $this->findTheOnlyLog();
+
+        // No console.terminate was ever dispatched: this is what "unfinished" means for the
+        // statistics feature (endTime IS NULL), whether the process is still running or was
+        // killed before terminating cleanly. durationMs must stay null, never a guess.
+        $this->assertNull($log->getEndTime());
+        $this->assertNull($log->getDurationMs());
     }
 
     public function testErrorEventRecordsExceptionMessage(): void

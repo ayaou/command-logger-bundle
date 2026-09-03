@@ -63,4 +63,50 @@ class CommandExecutionTrackerTest extends TestCase
         $this->assertNull($tracker->getToken($command1));
         $this->assertNull($tracker->getToken($command2));
     }
+
+    public function testSetAndGetStartTimestamp(): void
+    {
+        $tracker = new CommandExecutionTracker();
+        $command = $this->createMock(Command::class);
+
+        $tracker->setStartTimestamp($command, 123456789);
+
+        $this->assertSame(123456789, $tracker->getStartTimestamp($command));
+    }
+
+    public function testGetStartTimestampReturnsNullIfNotSet(): void
+    {
+        $tracker = new CommandExecutionTracker();
+        $command = $this->createMock(Command::class);
+
+        $this->assertNull($tracker->getStartTimestamp($command));
+    }
+
+    public function testClearTokenAlsoRemovesStartTimestamp(): void
+    {
+        $tracker = new CommandExecutionTracker();
+        $command = $this->createMock(Command::class);
+
+        $tracker->setToken($command, 'test-token');
+        $tracker->setStartTimestamp($command, 123456789);
+
+        $tracker->clearToken($command);
+
+        $this->assertNull($tracker->getStartTimestamp($command));
+    }
+
+    public function testClearAlsoRemovesAllStartTimestamps(): void
+    {
+        $tracker = new CommandExecutionTracker();
+        $command1 = $this->createMock(Command::class);
+        $command2 = $this->createMock(Command::class);
+
+        $tracker->setStartTimestamp($command1, 111);
+        $tracker->setStartTimestamp($command2, 222);
+
+        $tracker->clear();
+
+        $this->assertNull($tracker->getStartTimestamp($command1));
+        $this->assertNull($tracker->getStartTimestamp($command2));
+    }
 }

@@ -71,6 +71,7 @@ The logs are stored in the `command_log` table with the following fields:
 - `startTime` – Execution start time
 - `endTime` – Execution end time
 - `exitCode` – Command exit code
+- `durationMs` – Execution duration in milliseconds, or `null` when unknown (see "Command Execution Statistics" below)
 - `errorMessage` – Error message if applicable
 - `executionToken` – Unique identifier for execution tracking
 
@@ -107,6 +108,60 @@ By default, this uses the `purge_threshold` value from the configuration. To ove
 bin/console command-logger:purge --threshold=30
 ```
 For example, `--threshold=30` removes logs older than 30 days
+
+## Command Execution Statistics
+
+> **:warning: Schema update required.** The `durationMs` column is new. After upgrading, run
+> `doctrine:schema:update --force` (or apply an equivalent migration) before using this
+> feature. Rows logged before the upgrade have no way to recover a duration and will keep
+> `durationMs = null` forever; they are excluded from the duration averages/min/max below, not
+> counted as zero.
+
+The `command-logger:stats` command aggregates the `command_log` table into a summary, a
+breakdown by exit code, and a breakdown by command name.
+
+```bash
+bin/console command-logger:stats [name] [--status=STATUS] [--code=CODE] [--from=FROM] [--to=TO] [--limit=LIMIT]
+```
+
+### Arguments
+
+* `name` (optional): Filters statistics by command name (exact match on the "name contains" filter, same as the `name` query parameter of the REST API).
+
+### Options
+
+These mirror the REST API's `CommandLogFilter` exactly, so the numbers here are computed over
+the same rows a matching `GET /command-logs` request would list:
+
+* `--status` (optional): `success` or `error`. Cannot be combined with `--code`.
+* `--code|-c` (optional): Filters by a specific exit code.
+* `--from` (optional, `Y-m-d` or `Y-m-d H:i:s`): Only include logs started on or after this date/time.
+* `--to` (optional, `Y-m-d` or `Y-m-d H:i:s`): Only include logs started on or before this date/time.
+* `--limit|-l` (optional, default `10`): Number of commands to show in the per-command breakdown.
+
+### Metrics
+
+* **Total** – Number of logs matching the filter.
+* **Successes** – Logs with `exitCode = 0`.
+* **Failures** – Logs with `exitCode != 0`.
+* **Unfinished** – Logs with `endTime IS NULL`. This means the command **never reached
+  `console.terminate`**: it may have been killed, crashed, or it may simply still be running
+  right now, at the moment the statistics were computed. There is no way to tell the two apart
+  from this table alone.
+* **Failure rate** – `Failures / Total`, computed in PHP so an empty result set never divides
+  by zero.
+* **Duration (avg / min / max)** – In milliseconds, computed only over logs that actually have
+  a `durationMs` value. Unfinished logs and logs predating the schema update are excluded from
+  these figures rather than treated as `0`.
+* **Measured executions** – How many of the matched logs contributed a `durationMs` value to
+  the duration figures above.
+* **Breakdown by exit code** – Count of logs for each distinct, non-null `exitCode`.
+* **Breakdown by command** – The same set of metrics grouped by `commandName`, sorted by total
+  volume (descending) and capped at `--limit` entries.
+
+These aggregations only use `COUNT`, `AVG`, `MIN`, `MAX` and `GROUP BY`, so they run unchanged
+on every database engine this bundle supports — there is no median, no percentile, and no
+time-bucketed series in this feature.
 
 ## REST API
 

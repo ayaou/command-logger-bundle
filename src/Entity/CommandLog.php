@@ -22,6 +22,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
 #[ORM\Index(fields: ['commandName'])]
 #[ORM\Index(fields: ['startTime'])]
 #[ORM\Index(fields: ['commandName', 'startTime'])]
+#[ORM\Index(fields: ['exitCode'])]
 class CommandLog
 {
     #[ORM\Id]
@@ -52,6 +53,15 @@ class CommandLog
     #[ORM\Column(type: 'integer', nullable: true)]
     #[Groups(['command_log:list', 'command_log:item'])]
     private ?int $exitCode = null;
+
+    // Nullable: only populated when CommandTerminateListener can find the matching start
+    // instant recorded in memory by CommandExecutionTracker (see its class docblock). Rows
+    // logged before this column existed, and rows whose start instant was lost (e.g. process
+    // crash between console.command and console.terminate), stay null rather than a computed
+    // guess - see the "Statistics" section of README.md.
+    #[ORM\Column(type: 'integer', nullable: true)]
+    #[Groups(['command_log:list', 'command_log:item'])]
+    private ?int $durationMs = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
     #[Groups(['command_log:item'])]
@@ -128,6 +138,18 @@ class CommandLog
     public function setExitCode(?int $exitCode): self
     {
         $this->exitCode = $exitCode;
+
+        return $this;
+    }
+
+    public function getDurationMs(): ?int
+    {
+        return $this->durationMs;
+    }
+
+    public function setDurationMs(?int $durationMs): self
+    {
+        $this->durationMs = $durationMs;
 
         return $this;
     }
