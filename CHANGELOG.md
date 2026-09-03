@@ -1,3 +1,17 @@
+# [1.9.0](https://github.com/ayaou/command-logger-bundle/compare/v1.8.0...v1.9.0) (2026-09-03)
+
+
+### Bug Fixes
+
+* **listener:** never let a logging failure break the command ([989da57](https://github.com/ayaou/command-logger-bundle/commit/989da5705f56408deae7262f1d5c9ad94dee99e6))
+* **quality:** clear the PHPStan level 8 findings ([b4e9dfe](https://github.com/ayaou/command-logger-bundle/commit/b4e9dfe0c7f4c2e821490fbd151b9092e119dfc3))
+
+
+### Features
+
+* **api:** expose command execution statistics over HTTP ([5f900dc](https://github.com/ayaou/command-logger-bundle/commit/5f900dc921654e8338920b06940263249c307afe))
+* **stats:** report command execution statistics ([b6124b4](https://github.com/ayaou/command-logger-bundle/commit/b6124b4c4b8bf3f3520db10e8d132fcb61dbb788))
+
 # [1.8.0](https://github.com/ayaou/command-logger-bundle/compare/v1.7.1...v1.8.0) (2026-09-03)
 
 
