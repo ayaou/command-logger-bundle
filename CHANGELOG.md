@@ -1,3 +1,11 @@
+# [1.11.0](https://github.com/ayaou/command-logger-bundle/compare/v1.10.0...v1.11.0) (2026-09-04)
+
+
+### Features
+
+* **command:** show the captured output in command-logger:show ([4bbfbc8](https://github.com/ayaou/command-logger-bundle/commit/4bbfbc8a5a3abf0ba02ff5ff6ad2af87e2260463)), closes [#20](https://github.com/ayaou/command-logger-bundle/issues/20)
+* **output:** store what a watched command printed, behind an opt-in flag ([ae0b438](https://github.com/ayaou/command-logger-bundle/commit/ae0b438c89a31505b619915532d079dd850476a0))
+
 # [1.10.0](https://github.com/ayaou/command-logger-bundle/compare/v1.9.0...v1.10.0) (2026-09-03)
 
 
